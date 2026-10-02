@@ -51,7 +51,7 @@ export const STAGES = [
   },
 ] as const;
 
-export const ALL_STEPS = STAGES.flatMap((s) => s.steps);
+export const ALL_STEPS: { to: string; code: string; label: string; key: string }[] = STAGES.flatMap((s) => s.steps as unknown as { to: string; code: string; label: string; key: string }[]);
 
 function Layout() {
   const hydrated = useHydrated();
@@ -97,7 +97,7 @@ function Inner() {
               </div>
               <div className="space-y-0.5">
                 {stage.steps.map((s) => (
-                  <Link key={s.to} to={s.to} params={{ id: project.id }} activeOptions={{ exact: true }}
+                  <Link key={s.to} to={s.to as string} params={{ id: project.id }} activeOptions={{ exact: true }}
                     className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                     activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs" }}>
                     <span className="num w-4 text-[11px] text-sidebar-primary">{s.code}</span>
@@ -125,7 +125,7 @@ function Inner() {
         <div className="no-print flex gap-2 overflow-x-auto border-b bg-sidebar p-2.5 md:hidden">
           <Link to="/" className="px-2 text-xs text-sidebar-foreground">← Beranda</Link>
           {ALL_STEPS.map((s) => (
-            <Link key={s.to} to={s.to} params={{ id: project.id }} activeOptions={{ exact: true }} className="whitespace-nowrap rounded-md px-2.5 py-1 text-xs text-sidebar-foreground" activeProps={{ className: "bg-sidebar-accent font-semibold" }}>{s.label}</Link>
+            <Link key={s.to} to={s.to as string} params={{ id: project.id }} activeOptions={{ exact: true }} className="whitespace-nowrap rounded-md px-2.5 py-1 text-xs text-sidebar-foreground" activeProps={{ className: "bg-sidebar-accent font-semibold" }}>{s.label}</Link>
           ))}
         </div>
         <main className="print-full mx-auto max-w-6xl px-6 py-8"><Outlet /></main>

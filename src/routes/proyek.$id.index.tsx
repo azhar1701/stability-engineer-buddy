@@ -16,7 +16,7 @@ const FORCE_LABEL: Record<ForceKey, string> = {
 const STEP_PATH = { proyek: "/proyek/$id", geometri: "/proyek/$id/geometri", hidraulika: "/proyek/$id/hidraulika", tanah: "/proyek/$id/tanah", gaya: "/proyek/$id/gaya" } as const;
 
 function ProyekPage() {
-  const { project: p, result: a, set, update } = useProject();
+  const { project: p, result: a, set, update, patch } = useProject();
   const t = typeById(p.type);
   const changeType = (type: TypeId) => {
     const hasGeom = p.components.some((c) => c.b1 > 0 || c.h > 0);

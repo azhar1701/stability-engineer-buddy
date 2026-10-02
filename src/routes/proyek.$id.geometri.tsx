@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { fmt, KV, PageHeader, Section } from "@/components/kit";
+import { fmt, KV, PageHeader, Section, StepNav } from "@/components/kit";
 import { MATERIALS, typeById } from "@/lib/engine/master";
 import { uid } from "@/lib/engine/defaults";
 import type { Component, Shape } from "@/lib/engine/types";
