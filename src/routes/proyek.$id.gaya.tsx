@@ -14,7 +14,12 @@ function GayaPage() {
   const c = a.cases[ci] ?? a.cases[0]!;
   return (
     <>
-      <PageHeader code="24_GAYA_MOMEN" title="Mesin Gaya dan Momen" desc="Momen terhadap toe. Gaya vertikal ke bawah dan gaya horizontal penahan memberi momen penahan; uplift dan gaya horizontal penggerak memberi momen pengguling." />
+      <PageHeader
+        step={6}
+        code="24_GAYA_MOMEN"
+        title="Mesin Gaya dan Momen"
+        desc="Momen terhadap toe. Gaya vertikal ke bawah dan gaya horizontal penahan memberi momen penahan; uplift dan gaya horizontal penggerak memberi momen pengguling."
+      />
       <Section title="Gaya tambahan proyek (22_BEBAN_KHUSUS)">
         <Grid>
           <NumField label="Gaya horizontal lain H" unit="kN" value={p.extra.H} onChange={(v) => patch("extra", { H: v })} />

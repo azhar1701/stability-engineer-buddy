@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { Grid, NumField, PageHeader, Section, SelectField, Status, StepNav, TextField, Notice } from "@/components/kit";
+import { Grid, NumField, PageHeader, Section, SelectField, Status, StepNav, TextField, Notice, AutocompleteField } from "@/components/kit";
 import { KECAMATAN, TYPES, typeById, type ForceKey, type Switch, type TypeId } from "@/lib/engine/master";
 import { componentsFor } from "@/lib/engine/defaults";
 import { forceActive } from "@/lib/engine/compute";
@@ -22,16 +22,96 @@ function ProyekPage() {
     const hasGeom = p.components.some((c) => c.b1 > 0 || c.h > 0);
     update((x) => ({ ...x, type, components: hasGeom ? x.components : componentsFor(type) }));
   };
+
+  const hasGeometry = p.components.some((c) => c.b1 > 0 && c.h > 0);
+  const hasBaseWidth = p.B > 0;
+  const hasWaterLevels = a.wl.hu > 0 || a.wl.hd > 0 || p.type === "DND";
+  const allReady = a.ready;
+
   return (
     <>
-      <PageHeader code="01_PROYEK · 03_PROFIL_AKTIF" title="Pengaturan Proyek & Kesiapan Input" desc="Sakelar utama jenis bangunan menentukan komponen geometri, gaya aktif, kasus beban yang berlaku, dan kriteria FS." />
-      <Section title="Identitas">
+      <PageHeader
+        step={1}
+        code="01_PROYEK · 03_PROFIL_AKTIF"
+        title="Pengaturan Proyek & Kesiapan Input"
+        desc="Sakelar utama jenis bangunan menentukan komponen geometri, gaya aktif, kasus beban yang berlaku, dan kriteria FS."
+      />
+
+      {/* Getting Started Checklist banner for new or incomplete projects */}
+      {!allReady && (
+        <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                i
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                Panduan Singkat: 4 Langkah Menuju Hasil Stabilitas
+              </span>
+            </div>
+            <span className="num text-xs font-semibold text-primary">
+              {[hasBaseWidth, hasGeometry, hasWaterLevels, allReady].filter(Boolean).length} / 4 Selesai
+            </span>
+          </div>
+          <div className="mt-3 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className={`rounded-md border p-2.5 text-xs transition-colors ${hasBaseWidth ? "border-success/30 bg-success/10 text-success" : "border-border bg-card text-foreground"}`}>
+              <div className="flex items-center justify-between font-semibold">
+                <span>1. Dimensi Fondasi (B)</span>
+                <span>{hasBaseWidth ? "✓" : "○"}</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">Isi lebar dasar B & kedalaman Df di form bawah</p>
+            </div>
+            <Link
+              to="/proyek/$id/geometri"
+              params={{ id: p.id }}
+              className={`block rounded-md border p-2.5 text-xs transition-colors hover:border-primary ${hasGeometry ? "border-success/30 bg-success/10 text-success" : "border-border bg-card text-foreground"}`}
+            >
+              <div className="flex items-center justify-between font-semibold">
+                <span>2. Geometri Komponen</span>
+                <span>{hasGeometry ? "✓" : "→"}</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">Beri dimensi komponen struktur (b1, h)</p>
+            </Link>
+            <Link
+              to="/proyek/$id/hidraulika"
+              params={{ id: p.id }}
+              className={`block rounded-md border p-2.5 text-xs transition-colors hover:border-primary ${hasWaterLevels ? "border-success/30 bg-success/10 text-success" : "border-border bg-card text-foreground"}`}
+            >
+              <div className="flex items-center justify-between font-semibold">
+                <span>3. Muka Air (hu, hd)</span>
+                <span>{hasWaterLevels ? "✓" : "→"}</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">Tentukan elevasi muka air hulu & hilir</p>
+            </Link>
+            <Link
+              to="/proyek/$id/stabilitas"
+              params={{ id: p.id }}
+              className={`block rounded-md border p-2.5 text-xs transition-colors hover:border-primary ${allReady ? "border-success/30 bg-success/10 text-success" : "border-border bg-card text-foreground"}`}
+            >
+              <div className="flex items-center justify-between font-semibold">
+                <span>4. Cek Stabilitas</span>
+                <span>{allReady ? "✓" : "→"}</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">Evaluasi faktor keamanan & eksentrisitas</p>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      <Section title="Identitas Proyek & Lokasi">
         <Grid>
-          <TextField label="Nama proyek" value={p.name} onChange={(v) => set("name", v)} />
-          <TextField label="Lokasi / ruas" value={p.location} onChange={(v) => set("location", v)} />
-          <TextField label="Engineer" value={p.engineer} onChange={(v) => set("engineer", v)} />
-          <SelectField label="Kecamatan (Kab. Ciamis)" value={p.kecamatan} options={[{ value: "", label: "— pilih —" }, ...Object.keys(KECAMATAN).map((k) => ({ value: k, label: k }))]} onChange={(v) => set("kecamatan", v)} />
-          <TextField label="Desa / Kelurahan" value={p.desa} onChange={(v) => set("desa", v)} />
+          <TextField label="Nama proyek" value={p.name} onChange={(v) => set("name", v)} placeholder="e.g. Bendung Cikaso" />
+          <TextField label="Lokasi / ruas" value={p.location} onChange={(v) => set("location", v)} placeholder="Kabupaten Ciamis" />
+          <TextField label="Engineer" value={p.engineer} onChange={(v) => set("engineer", v)} placeholder="Nama penyusun" />
+          <AutocompleteField
+            label="Kecamatan (Kab. Ciamis)"
+            value={p.kecamatan}
+            options={Object.keys(KECAMATAN)}
+            onChange={(v) => set("kecamatan", v)}
+            hint="Sinkron dengan basis data geoteknik regional Ciamis"
+            placeholder="Ketik atau pilih kecamatan..."
+          />
+          <TextField label="Desa / Kelurahan" value={p.desa} onChange={(v) => set("desa", v)} placeholder="Nama desa" />
         </Grid>
       </Section>
       <Section title="Jenis bangunan & mode analisis">

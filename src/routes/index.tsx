@@ -4,6 +4,7 @@ import { useHydrated, useStore, uatSample, newProject } from "@/lib/store";
 import { analyze } from "@/lib/engine/compute";
 import { typeById, type TypeId } from "@/lib/engine/master";
 import { fmt, Status } from "@/components/kit";
+import { NewProjectWizard } from "@/components/NewProjectWizard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,6 +26,7 @@ function Dashboard() {
   const [filterType, setFilterType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"GRID" | "TABLE">("GRID");
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const go = (id: string) => nav({ to: "/proyek/$id", params: { id } });
 
@@ -71,7 +73,7 @@ function Dashboard() {
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-sidebar-foreground/80">Platform terintegrasi analisis stabilitas gravitasi: geser, guling, eksentrisitas, daya dukung, rembesan piping, dan beban gempa pseudostatik.</p>
             </div>
             <div className="flex flex-wrap gap-2.5">
-              <button onClick={() => go(create(newProject()))} className="inline-flex items-center gap-2 rounded-md bg-sidebar-primary px-4 py-2.5 text-xs font-bold text-sidebar-primary-foreground shadow-sm transition-all hover:bg-sidebar-primary/90 hover:shadow-md">
+              <button onClick={() => setWizardOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-sidebar-primary px-4 py-2.5 text-xs font-bold text-sidebar-primary-foreground shadow-sm transition-all hover:bg-sidebar-primary/90 hover:shadow-md">
                 + Buat Proyek Baru
               </button>
               <button onClick={() => go(create(uatSample()))} className="rounded-md border border-sidebar-border bg-sidebar-accent/50 px-3.5 py-2.5 text-xs font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
@@ -193,7 +195,7 @@ function Dashboard() {
                         </h3>
                         <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{p.location || "Lokasi belum diatur"}{p.kecamatan && ` · Kec. ${p.kecamatan}`}</p>
 
-                        <div className="mt-4 grid grid-cols-3 gap-2 rounded-md bg-muted/30 p-2.5 text-center">
+                        <div className={`mt-4 grid ${a.seepage.enabled ? "grid-cols-4" : "grid-cols-3"} gap-1.5 rounded-md bg-muted/30 p-2.5 text-center`}>
                           <div>
                             <div className="text-[10px] text-muted-foreground">FS Geser</div>
                             <div className={`num font-bold text-xs ${a.envelope.slide?.c.slideOk ? "text-success" : "text-destructive"}`}>
@@ -212,6 +214,14 @@ function Dashboard() {
                               {fmt(a.envelope.ratio?.value)}
                             </div>
                           </div>
+                          {a.seepage.enabled && (
+                            <div>
+                              <div className="text-[10px] text-muted-foreground">Piping</div>
+                              <div className={`num font-bold text-xs ${a.seepage.laneOk ? "text-success" : "text-destructive"}`}>
+                                {a.seepage.laneOk ? "AMAN" : "BAHAYA"}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -273,6 +283,17 @@ function Dashboard() {
         )}
         <p className="mt-8 text-xs text-muted-foreground">Penyimpanan aman lokal berbasis peramban (IndexedDB / LocalStorage). Gunakan fitur cadangan JSON untuk arsip jangka panjang.</p>
       </main>
+
+      <NewProjectWizard
+        isOpen={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onCreate={(type, meta) => {
+          const p = newProject(type, meta);
+          const id = create(p);
+          setWizardOpen(false);
+          go(id);
+        }}
+      />
     </div>
   );
 }

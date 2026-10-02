@@ -15,13 +15,27 @@ export function componentsFor(type: TypeId): Component[] {
   return typeById(type).components.slice(0, 3).map((name) => ({ id: uid(), name, shape: "PERSEGI", b1: 0, b2: 0, h: 0, x0: 0, z0: 0, material: "Beton bertulang" }));
 }
 
-export function newProject(type: TypeId = "BND"): Project {
+export function newProject(
+  type: TypeId = "BND",
+  meta?: Partial<Pick<Project, "name" | "location" | "kecamatan" | "desa" | "engineer">>
+): Project {
   return {
-    id: uid(), updatedAt: Date.now(), name: "Proyek baru", location: "Kabupaten Ciamis", engineer: "",
-    type, analysisMode: "SELURUH BANGUNAN", actualWidth: 1, kecamatan: "", desa: "",
-    B: 0, Df: 0, Hsoil: 0,
+    id: uid(),
+    updatedAt: Date.now(),
+    name: meta?.name?.trim() || "Proyek baru",
+    location: meta?.location?.trim() || "Kabupaten Ciamis",
+    engineer: meta?.engineer?.trim() || "",
+    type,
+    analysisMode: "SELURUH BANGUNAN",
+    actualWidth: 1,
+    kecamatan: meta?.kecamatan?.trim() || "",
+    desa: meta?.desa?.trim() || "",
+    B: 0,
+    Df: 0,
+    Hsoil: 0,
     switches: { hydroUp: "OTOMATIS", hydroDown: "OTOMATIS", uplift: "OTOMATIS", soilLat: "OTOMATIS", waterWeight: "OTOMATIS" },
-    fsOverride: { enabled: false, slide: 2, overturn: 1.5 }, criteriaMode: "PER KASUS",
+    fsOverride: { enabled: false, slide: 2, overturn: 1.5 },
+    criteriaMode: "PER KASUS",
     components: componentsFor(type),
     hydrology: { method: "MANUAL", Q: 0, C: 0.6, I: 0, A: 0 },
     hydraulics: { method: "MANUAL", hu: 0, hd: 0, b: 0, z: 0, n: 0.03, S: 0, pMercu: 2.5, Cd: 2.1, beff: 0 },

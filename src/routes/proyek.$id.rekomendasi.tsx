@@ -13,7 +13,12 @@ function RecPage() {
   const recs = recommend(a);
   return (
     <>
-      <PageHeader code="31_ATURAN · 32_REKOMENDASI" title="Rekomendasi Teknis Otomatis" desc="Dihasilkan dari envelope dan status data. Tidak menggantikan engineering review; app tidak melakukan redesign otomatis." />
+      <PageHeader
+        step={10}
+        code="31_ATURAN · 32_REKOMENDASI"
+        title="Rekomendasi Teknis Otomatis"
+        desc="Dihasilkan dari envelope dan status data. Tidak menggantikan engineering review; app tidak melakukan redesign otomatis."
+      />
       <Section title={`${recs.length} rekomendasi`}>
         <ul className="divide-y">
           {recs.map((r, i) => (

@@ -18,7 +18,12 @@ function UpliftPage() {
 
   return (
     <>
-      <PageHeader code="18_TEKANAN_TANAH · 19_GAYA_ANGKAT · 20_REMBESAN_LANE" title="Tekanan Tanah Lateral, Gaya Angkat & Rembesan" desc="Nilai di bawah adalah kondisi dasar (faktor kasus = 1). Dilengkapi evaluasi bahaya piping (KP-02)." />
+      <PageHeader
+        step={5}
+        code="18_TEKANAN_TANAH · 19_GAYA_ANGKAT · 20_REMBESAN_LANE"
+        title="Tekanan Tanah Lateral, Gaya Angkat & Rembesan"
+        desc="Nilai di bawah adalah kondisi dasar (faktor kasus = 1). Dilengkapi evaluasi bahaya piping (KP-02)."
+      />
       <Section title="Tekanan tanah lateral" aside={<Status s={a.act.soil ? "AKTIF" : "T/A"} />}>
         <Grid>
           <SelectField label="Kondisi tekanan" value={p.earth.mode} options={["RANKINE AKTIF", "DIAM K0", "MANUAL"] as const} onChange={(v) => patch("earth", { mode: v })} hint="Ka = tan²(45−φ/2); K0 = 1 − sin φ" />

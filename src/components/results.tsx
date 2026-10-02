@@ -6,16 +6,30 @@ type A = ReturnType<typeof analyze>;
 export function CaseTable({ a }: { a: A }) {
   const on = a.cases.filter((c) => c.status !== "TIDAK AKTIF");
   return (
-    <Table head={["Kasus", "N kN", "H kN", "FS geser", "min", "FS guling", "min", "e m", "Rezim", "q maks kPa", "q/qizin", "Status"]}
-      rows={on.map((c) => [
-        <span><span className="num text-xs text-muted-foreground">{c.id}</span> {c.name}</span>,
-        <span className="num">{fmt(c.N)}</span>, <span className="num">{fmt(c.H)}</span>,
-        <span className={"num " + (c.slideOk ? "" : "font-semibold text-destructive")}>{fmt(c.fsSlide)}</span>, <span className="num text-muted-foreground">{fmt(c.fsSlideMin)}</span>,
-        <span className={"num " + (c.overturnOk ? "" : "font-semibold text-destructive")}>{fmt(c.fsOverturn)}</span>, <span className="num text-muted-foreground">{fmt(c.fsOverturnMin)}</span>,
-        <span className="num">{fmt(c.e, 3)}</span>, <Status s={c.regime} />,
-        <span className="num">{fmt(c.qMax, 1)}</span>, <span className={"num " + (c.qRatio > 1 ? "font-semibold text-destructive" : "")}>{fmt(c.qRatio)}</span>,
-        <Status s={c.status} />,
-      ])} />
+    <Table
+      head={["Kasus", "N kN", "H kN", "FS geser", "min", "FS guling", "min", "e m", "Rezim", "q maks kPa", "q/qizin", "Status"]}
+      rowClassNames={on.map((c) =>
+        !c.slideOk || !c.overturnOk || c.qRatio > 1 || c.status === "TIDAK MEMENUHI"
+          ? "bg-destructive/5 hover:bg-destructive/10"
+          : undefined
+      )}
+      rows={on.map((c) => {
+        const isCritical = !c.slideOk || !c.overturnOk || c.qRatio > 1 || c.status === "TIDAK MEMENUHI";
+        return [
+          <span className="flex items-center gap-1.5 font-medium">
+            {isCritical && <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" title="Kasus tidak memenuhi kriteria" />}
+            <span className="num text-xs text-muted-foreground">{c.id}</span>
+            <span>{c.name}</span>
+          </span>,
+          <span className="num">{fmt(c.N)}</span>, <span className="num">{fmt(c.H)}</span>,
+          <span className={"num " + (c.slideOk ? "text-success font-semibold" : "font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded")}>{fmt(c.fsSlide)}</span>, <span className="num text-muted-foreground">{fmt(c.fsSlideMin)}</span>,
+          <span className={"num " + (c.overturnOk ? "text-success font-semibold" : "font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded")}>{fmt(c.fsOverturn)}</span>, <span className="num text-muted-foreground">{fmt(c.fsOverturnMin)}</span>,
+          <span className="num">{fmt(c.e, 3)}</span>, <Status s={c.regime} />,
+          <span className="num">{fmt(c.qMax, 1)}</span>, <span className={"num " + (c.qRatio > 1 ? "font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded" : "")}>{fmt(c.qRatio)}</span>,
+          <Status s={c.status} />,
+        ];
+      })}
+    />
   );
 }
 

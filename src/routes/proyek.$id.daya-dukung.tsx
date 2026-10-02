@@ -13,7 +13,12 @@ function BearingPage() {
   const q = a.envelope.q;
   return (
     <>
-      <PageHeader code="28_GEOTEKNIK_FONDASI" title="Daya Dukung Fondasi" desc="q izin dari data tanah, atau dihitung dengan faktor kapasitas (fondasi menerus): qu = c'Nc + γDfNq + ½γBNγ." />
+      <PageHeader
+        step={9}
+        code="28_GEOTEKNIK_FONDASI"
+        title="Daya Dukung Fondasi"
+        desc="q izin dari data tanah, atau dihitung dengan faktor kapasitas (fondasi menerus): qu = c'Nc + γDfNq + ½γBNγ."
+      />
       <Section title="Metode">
         <Grid>
           <SelectField label="Mode daya dukung" value={p.bearing.mode} options={[{ value: "QIZIN", label: "q IZIN PROYEK / PENAPISAN" }, { value: "TERZAGHI", label: "FAKTOR KAPASITAS (Nc, Nq, Nγ)" }] as const} onChange={(v) => patch("bearing", { mode: v })} />

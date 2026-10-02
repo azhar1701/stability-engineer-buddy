@@ -32,7 +32,12 @@ function StabPage() {
 
   return (
     <>
-      <PageHeader code="26_STABILITAS · 27_ENVELOPE" title="Pemeriksaan Stabilitas & Envelope" desc="Pemeriksaan faktor keamanan terhadap geser (FS geser ≥ min), guling (FS guling ≥ min), eksentrisitas resultan (|e| ≤ B/6), dan rasio tegangan kontak dasar tanah terhadap daya dukung izin." />
+      <PageHeader
+        step={8}
+        code="26_STABILITAS · 27_ENVELOPE"
+        title="Pemeriksaan Stabilitas & Envelope"
+        desc="Pemeriksaan faktor keamanan terhadap geser (FS geser ≥ min), guling (FS guling ≥ min), eksentrisitas resultan (|e| ≤ B/6), dan rasio tegangan kontak dasar tanah terhadap daya dukung izin."
+      />
       {!a.ready && <Notice tone="destructive">Input wajib belum lengkap — status hasil BELUM LENGKAP.</Notice>}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

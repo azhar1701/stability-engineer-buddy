@@ -5,14 +5,62 @@ import { cn } from "@/lib/utils";
 export const fmt = (v: number | null | undefined, d = 2) =>
   v === null || v === undefined || !Number.isFinite(v) ? "—" : v.toLocaleString("id-ID", { minimumFractionDigits: d, maximumFractionDigits: d });
 
-export function PageHeader({ code, title, desc }: { code: string; title: string; desc?: string }) {
+export function PageHeader({
+  code,
+  step,
+  totalSteps = 11,
+  title,
+  desc,
+}: {
+  code?: string;
+  step?: number;
+  totalSteps?: number;
+  title: string;
+  desc?: string;
+}) {
   return (
-    <div className="mb-6 border-b pb-4">
-      <div className="flex items-center gap-2">
-        <span className="num rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">{code}</span>
-        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Standardized Engineering Workspace</span>
+    <div className="mb-6 border-b border-border/80 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {step !== undefined && (
+            <span className="num inline-flex items-center rounded-md bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+              Langkah {step} dari {totalSteps}
+            </span>
+          )}
+          {code && (
+            <span className="num hidden sm:inline-block rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {code}
+            </span>
+          )}
+          <span className="hidden md:inline-block text-[11px] uppercase tracking-wider text-muted-foreground/80">
+            Standardized Engineering Workspace
+          </span>
+        </div>
+        {step !== undefined && (
+          <div className="flex items-center gap-1" aria-label={`Progress langkah ${step} dari ${totalSteps}`}>
+            {Array.from({ length: totalSteps }, (_, i) => {
+              const sNum = i + 1;
+              const isPast = sNum < step;
+              const isCurrent = sNum === step;
+              return (
+                <span
+                  key={sNum}
+                  title={`Langkah ${sNum}`}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all",
+                    isCurrent
+                      ? "w-5 bg-primary"
+                      : isPast
+                      ? "w-2 bg-primary/40"
+                      : "w-1.5 bg-muted-foreground/20"
+                  )}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
-      <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-foreground lg:text-3xl">{title}</h1>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground lg:text-3xl">{title}</h1>
       {desc && <p className="mt-1.5 max-w-4xl text-sm leading-relaxed text-muted-foreground">{desc}</p>}
     </div>
   );
@@ -50,13 +98,65 @@ export function NumField({ label, unit, value, onChange, step = "any", hint }: {
   );
 }
 
-export function TextField({ label, value, onChange, hint }: { label: string; value: string; onChange: (v: string) => void; hint?: string }) {
+export function TextField({ label, value, onChange, hint, placeholder }: { label: string; value: string; onChange: (v: string) => void; hint?: string; placeholder?: string }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-foreground/80">{label}</span>
-      <input className={inputCls} value={value} onChange={(e) => onChange(e.target.value)} />
+      <input className={inputCls} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
       {hint && <span className="mt-1 block text-[11px] leading-tight text-muted-foreground">{hint}</span>}
     </label>
+  );
+}
+
+export function AutocompleteField({
+  label,
+  value,
+  onChange,
+  options,
+  hint,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: readonly string[];
+  hint?: string;
+  placeholder?: string;
+}) {
+  const listId = `list-${label.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()}`;
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-medium text-foreground/80">{label}</span>
+      <input
+        list={listId}
+        className={inputCls}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder ?? "Ketik atau pilih dari daftar…"}
+      />
+      <datalist id={listId}>
+        {options.map((opt) => (
+          <option key={opt} value={opt} />
+        ))}
+      </datalist>
+      {hint && <span className="mt-1 block text-[11px] leading-tight text-muted-foreground">{hint}</span>}
+    </label>
+  );
+}
+
+export function AutosaveBadge({ saved }: { saved: boolean }) {
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-all duration-300",
+        saved
+          ? "bg-success/15 text-success opacity-100"
+          : "bg-muted text-muted-foreground/60 opacity-60"
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full", saved ? "bg-success" : "bg-muted-foreground/40")} />
+      {saved ? "Tersimpan" : "Menyimpan…"}
+    </div>
   );
 }
 
@@ -118,7 +218,17 @@ export function Notice({ tone = "warning", children }: { tone?: "warning" | "inf
   );
 }
 
-export function Table({ head, rows, className }: { head: ReactNode[]; rows: ReactNode[][]; className?: string }) {
+export function Table({
+  head,
+  rows,
+  rowClassNames,
+  className,
+}: {
+  head: ReactNode[];
+  rows: ReactNode[][];
+  rowClassNames?: (string | undefined)[];
+  className?: string;
+}) {
   return (
     <div className={cn("overflow-x-auto rounded-md border", className)}>
       <table className="w-full border-collapse text-sm">
@@ -129,7 +239,7 @@ export function Table({ head, rows, className }: { head: ReactNode[]; rows: Reac
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((r, i) => (
-            <tr key={i} className="transition-colors hover:bg-muted/40">
+            <tr key={i} className={cn("transition-colors hover:bg-muted/40", rowClassNames?.[i])}>
               {r.map((c, j) => <td key={j} className="px-3 py-2.5 align-middle">{c}</td>)}
             </tr>
           ))}

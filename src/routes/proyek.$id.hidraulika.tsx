@@ -12,7 +12,12 @@ function HidroPage() {
   const h = p.hydrology, hy = p.hydraulics;
   return (
     <>
-      <PageHeader code="12_HIDROLOGI · 13_HIDRAULIKA · 14_HITUNG" title="Hidrologi dan Muka Air" desc="Muka air hulu (hu) dan hilir (hd) menjadi dasar gaya hidrostatik dan uplift. Faktor tiap kasus beban diterapkan di langkah Kasus Beban." />
+      <PageHeader
+        step={3}
+        code="12_HIDROLOGI · 13_HIDRAULIKA · 14_HITUNG"
+        title="Hidrologi dan Muka Air"
+        desc="Muka air hulu (hu) dan hilir (hd) menjadi dasar gaya hidrostatik dan uplift. Faktor tiap kasus beban diterapkan di langkah Kasus Beban."
+      />
       <Section title="Debit rencana">
         <Grid>
           <SelectField label="Metode debit" value={h.method} options={[{ value: "MANUAL", label: "Q MANUAL" }, { value: "RASIONAL", label: "RASIONAL — PENAPISAN" }] as const} onChange={(v) => patch("hydrology", { method: v })} />

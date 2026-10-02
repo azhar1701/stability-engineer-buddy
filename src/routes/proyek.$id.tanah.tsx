@@ -13,7 +13,12 @@ function TanahPage() {
   const s = p.soil;
   return (
     <>
-      <PageHeader code="15_DB_TANAH · 16_ATURAN_TANAH · 17_TANAH" title="Tanah / Fondasi" desc="Mode otomatis memetakan kecamatan ke profil penapisan regional Ciamis. Gunakan data proyek terverifikasi untuk desain final." />
+      <PageHeader
+        step={4}
+        code="15_DB_TANAH · 16_ATURAN_TANAH · 17_TANAH"
+        title="Tanah / Fondasi"
+        desc="Mode otomatis memetakan kecamatan ke profil penapisan regional Ciamis. Gunakan data proyek terverifikasi untuk desain final."
+      />
       {a.soil.source === "SCREENING" && <Notice>Parameter penapisan regional (kepercayaan RENDAH) — bukan hasil penyelidikan lokasi. Tidak menggantikan SNI 8460:2017.</Notice>}
       <Section title="Sumber parameter" aside={<Status s={a.soil.status} />}>
         <Grid>

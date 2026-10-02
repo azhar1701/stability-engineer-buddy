@@ -1,7 +1,8 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { useHydrated } from "@/lib/store";
 import { useProject } from "@/lib/useProject";
-import { Status } from "@/components/kit";
+import { Status, AutosaveBadge } from "@/components/kit";
 import { exportXlsx } from "@/lib/exportXlsx";
 
 export const Route = createFileRoute("/proyek/$id")({
@@ -61,6 +62,21 @@ function Layout() {
 
 function Inner() {
   const { project, result } = useProject();
+  const [saved, setSaved] = useState(true);
+  const prevUpdatedRef = useRef(project?.updatedAt);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (project?.updatedAt && project.updatedAt !== prevUpdatedRef.current) {
+      prevUpdatedRef.current = project.updatedAt;
+      setSaved(false);
+      timer = setTimeout(() => setSaved(true), 600);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [project?.updatedAt]);
+
   if (!project) return (
     <div className="p-8 text-sm">Proyek tidak ditemukan. <Link to="/" className="text-primary underline">Kembali ke daftar</Link></div>
   );
@@ -73,9 +89,12 @@ function Inner() {
     <div className="flex min-h-screen">
       <aside className="no-print sticky top-0 hidden h-screen w-72 shrink-0 flex-col bg-sidebar text-sidebar-foreground shadow-lg md:flex">
         <div className="border-b border-sidebar-border px-5 py-3.5">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-sidebar-foreground/70 transition-colors hover:text-sidebar-accent-foreground">
-            ← Semua proyek
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-sidebar-foreground/70 transition-colors hover:text-sidebar-accent-foreground">
+              ← Semua proyek
+            </Link>
+            <AutosaveBadge saved={saved} />
+          </div>
           <div className="mt-2.5">
             <div className="truncate text-base font-bold text-sidebar-accent-foreground">{project.name}</div>
             <div className="mt-1 flex items-center justify-between">
@@ -122,11 +141,16 @@ function Inner() {
       </aside>
 
       <div className="min-w-0 flex-1 bg-background">
-        <div className="no-print flex gap-2 overflow-x-auto border-b bg-sidebar p-2.5 md:hidden">
-          <Link to="/" className="px-2 text-xs text-sidebar-foreground">← Beranda</Link>
-          {ALL_STEPS.map((s) => (
-            <Link key={s.to} to={s.to as string} params={{ id: project.id }} activeOptions={{ exact: true }} className="whitespace-nowrap rounded-md px-2.5 py-1 text-xs text-sidebar-foreground" activeProps={{ className: "bg-sidebar-accent font-semibold" }}>{s.label}</Link>
-          ))}
+        <div className="no-print flex items-center justify-between gap-2 overflow-x-auto border-b bg-sidebar p-2.5 md:hidden">
+          <div className="flex items-center gap-2">
+            <Link to="/" className="px-2 text-xs text-sidebar-foreground">← Beranda</Link>
+            {ALL_STEPS.map((s) => (
+              <Link key={s.to} to={s.to as string} params={{ id: project.id }} activeOptions={{ exact: true }} className="whitespace-nowrap rounded-md px-2.5 py-1 text-xs text-sidebar-foreground" activeProps={{ className: "bg-sidebar-accent font-semibold" }}>{s.label}</Link>
+            ))}
+          </div>
+          <div className="shrink-0 pl-2">
+            <AutosaveBadge saved={saved} />
+          </div>
         </div>
         <main className="print-full mx-auto max-w-6xl px-6 py-8"><Outlet /></main>
       </div>
