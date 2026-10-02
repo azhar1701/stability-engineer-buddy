@@ -13,7 +13,7 @@ export const Route = createFileRoute("/proyek/$id/")({
 const FORCE_LABEL: Record<ForceKey, string> = {
   hydroUp: "Hidrostatik hulu", hydroDown: "Hidrostatik hilir", uplift: "Gaya angkat (uplift)", soilLat: "Tekanan tanah lateral", waterWeight: "Berat air dalam talang",
 };
-const STEP_PATH: Record<string, string> = { proyek: "/proyek/$id", geometri: "/proyek/$id/geometri", hidraulika: "/proyek/$id/hidraulika", tanah: "/proyek/$id/tanah", gaya: "/proyek/$id/gaya" };
+const STEP_PATH = { proyek: "/proyek/$id", geometri: "/proyek/$id/geometri", hidraulika: "/proyek/$id/hidraulika", tanah: "/proyek/$id/tanah", gaya: "/proyek/$id/gaya" } as const;
 
 function ProyekPage() {
   const { project: p, result: a, set, update } = useProject();
@@ -75,7 +75,7 @@ function ProyekPage() {
                 {r.note && <div className="text-xs text-muted-foreground">{r.note}</div>}
               </div>
               <div className="flex items-center gap-3">
-                {!r.ok && STEP_PATH[r.step] && <Link to={STEP_PATH[r.step]} params={{ id: p.id }} className="text-xs text-primary hover:underline">Lengkapi →</Link>}
+                {!r.ok && STEP_PATH[r.step as keyof typeof STEP_PATH] && <Link to={STEP_PATH[r.step as keyof typeof STEP_PATH]} params={{ id: p.id }} className="text-xs text-primary hover:underline">Lengkapi →</Link>}
                 <Status s={r.ok ? "LENGKAP" : r.required ? "BELUM LENGKAP" : "PERHATIAN"} />
               </div>
             </li>

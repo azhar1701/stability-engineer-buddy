@@ -9,7 +9,7 @@ describe("mesin stabilitas — sampel UAT bendung", () => {
     expect(a.W).toBeCloseTo(13 * 23.53, 4);
   });
   it("titik berat trapesium simetris", () => {
-    const c = componentProps(p.components[1], 1, 6);
+    const c = componentProps(p.components[1]!, 1, 6);
     expect(c.A).toBeCloseTo(6);
     expect(c.zc).toBeCloseTo(1 + (2 * (4 + 4)) / (3 * 6));
   });
@@ -22,7 +22,7 @@ describe("mesin stabilitas — sampel UAT bendung", () => {
     expect(a.soil.mu).toBe(0.5);
   });
   it("kesetimbangan momen konsisten: a = (Mr−Mo)/N", () => {
-    const c = a.cases[0];
+    const c = a.cases[0]!;
     expect(c.a).toBeCloseTo((c.Mr - c.Mo) / c.N);
     expect(c.fsSlide).toBeCloseTo(c.R / c.H);
   });

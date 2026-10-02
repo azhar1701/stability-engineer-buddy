@@ -11,7 +11,7 @@ export const Route = createFileRoute("/proyek/$id/gaya")({
 function GayaPage() {
   const { project: p, result: a, patch } = useProject();
   const [ci, setCi] = useState(0);
-  const c = a.cases[ci];
+  const c = a.cases[ci] ?? a.cases[0]!;
   return (
     <>
       <PageHeader code="24_GAYA_MOMEN" title="Mesin Gaya dan Momen" desc="Momen terhadap toe. Gaya vertikal ke bawah dan gaya horizontal penahan memberi momen penahan; uplift dan gaya horizontal penggerak memberi momen pengguling." />

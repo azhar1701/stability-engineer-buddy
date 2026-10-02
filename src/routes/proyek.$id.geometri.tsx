@@ -43,7 +43,7 @@ function GeometriPage() {
             </thead>
             <tbody>
               {p.components.map((c, i) => {
-                const r = a.comps[i];
+                const r = a.comps[i]!;
                 return (
                   <tr key={c.id} className="border-t">
                     <td className="p-1"><input className={cell + " font-sans"} value={c.name} onChange={(e) => upd(c.id, { name: e.target.value })} /></td>
@@ -99,10 +99,10 @@ function Sketch() {
       case "SEGITIGA_KIRI": return [[x0, z0], [x0 + b1, z0], [x0 + b1, z0 + h]];
     }
   });
-  const pts = polys.flat();
+  const pts = polys.flat() as number[][];
   const hu = a.wl.hu, hd = a.wl.hd;
-  const maxX = Math.max(a.B, ...pts.map((q) => q[0]), 1);
-  const maxZ = Math.max(...pts.map((q) => q[1]), hu, 1);
+  const maxX = Math.max(a.B, ...pts.map((q) => q[0]!), 1);
+  const maxZ = Math.max(...pts.map((q) => q[1]!), hu, 1);
   const pad = 1.5, W = 600, H = 300;
   const s = Math.min(W / (maxX + 2 * pad), H / (maxZ + pad));
   const X = (x: number) => (x + pad) * s, Z = (z: number) => H - (z + 0.3) * s;
@@ -112,7 +112,7 @@ function Sketch() {
       {a.act.hd && hd > 0 && <rect x={X(maxX)} y={Z(hd)} width={pad * s} height={hd * s} className="fill-water/40" />}
       <line x1={0} x2={W} y1={Z(0)} y2={Z(0)} className="stroke-foreground/40" strokeDasharray="4 3" />
       {polys.map((poly, i) => poly && poly.length > 0 && (
-        <polygon key={i} points={poly.map(([x, z]) => `${X(x)},${Z(z)}`).join(" ")} className="fill-concrete stroke-foreground/70" strokeWidth={1} />
+        <polygon key={i} points={poly.map(([x, z]: number[]) => `${X(x!)},${Z(z!)}`).join(" ")} className="fill-concrete stroke-foreground/70" strokeWidth={1} />
       ))}
       <text x={X(0)} y={Z(0) + 14} className="fill-muted-foreground text-[10px]">heel</text>
       <text x={X(a.B) - 16} y={Z(0) + 14} className="fill-muted-foreground text-[10px]">toe</text>

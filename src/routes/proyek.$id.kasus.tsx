@@ -31,7 +31,7 @@ function KasusPage() {
             </tr></thead>
             <tbody>
               {p.cases.map((c, i) => {
-                const r = a.cases[i];
+                const r = a.cases[i]!;
                 const def = LOAD_CASES.find((d) => d.id === c.id);
                 return (
                   <tr key={c.id} className={"border-t " + (r.applies ? "" : "opacity-45")}>
