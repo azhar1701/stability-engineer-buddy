@@ -64,7 +64,7 @@ function Inner() {
         </nav>
         <button onClick={() => exportXlsx(project)} className="m-3 rounded-sm border border-sidebar-border px-3 py-2 text-xs hover:bg-sidebar-accent">Ekspor Excel</button>
       </aside>
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <div className="no-print flex gap-2 overflow-x-auto border-b bg-sidebar p-2 md:hidden">
           <Link to="/" className="px-2 text-xs text-sidebar-foreground">←</Link>
           {STEPS.map((s) => (
