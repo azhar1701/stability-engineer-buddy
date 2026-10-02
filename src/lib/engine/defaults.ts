@@ -4,7 +4,11 @@ import type { Component, Project } from "./types";
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
 export function defaultCases() {
-  return LOAD_CASES.map((c) => ({ id: c.id, name: c.name, cls: c.cls, active: true, fHu: c.fHu, fHd: c.fHd, fU: c.fU, fSoil: c.fSoil, fOtherH: c.fOtherH, fWater: c.fWater }));
+  return LOAD_CASES.map((c) => ({
+    id: c.id, name: c.name, cls: c.cls, active: true,
+    fHu: c.fHu, fHd: c.fHd, fU: c.fU, fSoil: c.fSoil, fOtherH: c.fOtherH, fWater: c.fWater,
+    fEq: c.fEq ?? 0,
+  }));
 }
 
 export function componentsFor(type: TypeId): Component[] {
@@ -20,12 +24,14 @@ export function newProject(type: TypeId = "BND"): Project {
     fsOverride: { enabled: false, slide: 2, overturn: 1.5 }, criteriaMode: "PER KASUS",
     components: componentsFor(type),
     hydrology: { method: "MANUAL", Q: 0, C: 0.6, I: 0, A: 0 },
-    hydraulics: { method: "MANUAL", hu: 0, hd: 0, b: 0, z: 0, n: 0.03, S: 0 },
-    soil: { mode: "SCREENING", gamma: 0, phi: 0, c: 0, mu: 0, qa: 0, slidingMode: "GESEK" },
-    earth: { mode: "RANKINE AKTIF", K: 0, surcharge: 0 },
+    hydraulics: { method: "MANUAL", hu: 0, hd: 0, b: 0, z: 0, n: 0.03, S: 0, pMercu: 2.5, Cd: 2.1, beff: 0 },
+    soil: { mode: "SCREENING", gamma: 0, phi: 0, c: 0, mu: 0, qa: 0, slidingMode: "GESEK", caRatio: 0.67, submergedBase: true },
+    earth: { mode: "RANKINE AKTIF", K: 0, surcharge: 0, hWaterSoil: 0 },
     uplift: { lambda: 1 },
     extra: { H: 0, armH: 0, V: 0, xV: 0, water: 0, xWater: 0 },
-    bearing: { mode: "QIZIN", fs: 3 },
+    bearing: { mode: "QIZIN", fs: 3, checkMeyerhof: false },
+    seismic: { enabled: false, kh: 0.12, kv: 0 },
+    seepage: { enabled: type === "BND", dCutoffUp: 1.0, dCutoffDown: 1.5, soilType: "PASIR_SEDANG" },
     cases: defaultCases(),
   };
 }

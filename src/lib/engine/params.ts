@@ -10,4 +10,10 @@ export const P = {
   FAKTOR_LEBAR_KONTAK: 3, // b' = 3a
   STEP_MANNING: 0.02,
   MAX_Y_MANNING: 10,
+  KOEF_ADHESI_DEFAULT: 0.67, // rasio ca/c' sesuai SNI 8460
+  GAMMA_SUB_MIN: 7.5, // batas bawah berat isi tanah terendam (kN/m³)
+  CD_PELIMPAH_OGEE: 2.1, // koefisien debit mercu bulat/ogee (KP-02)
+  KP_REDUKSI_PASIF: 0.5, // faktor reduksi tahanan pasif konservatif (KP-02)
+  LANE_CW_DEFAULT: 5.0, // angka rayapan Lane aman default
+  BLIGH_C_DEFAULT: 12.0, // angka rayapan Bligh aman default
 } as const;

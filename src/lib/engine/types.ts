@@ -9,6 +9,7 @@ export interface Component {
 export interface CaseInput {
   id: string; name: string; cls: CaseClass; active: boolean;
   fHu: number; fHd: number; fU: number; fSoil: number; fOtherH: number; fWater: number;
+  fEq?: number;
 }
 
 export interface Project {
@@ -25,15 +26,23 @@ export interface Project {
   criteriaMode: "PER KASUS" | "SERAGAM";
   components: Component[];
   hydrology: { method: "MANUAL" | "RASIONAL"; Q: number; C: number; I: number; A: number };
-  hydraulics: { method: "MANUAL" | "MANNING"; hu: number; hd: number; b: number; z: number; n: number; S: number };
+  hydraulics: {
+    method: "MANUAL" | "MANNING" | "WEIR_CREST";
+    hu: number; hd: number; b: number; z: number; n: number; S: number;
+    pMercu?: number; Cd?: number; beff?: number;
+  };
   soil: {
     mode: "SCREENING" | "PROYEK";
     gamma: number; phi: number; c: number; mu: number; qa: number;
     slidingMode: "GESEK" | "GESEK + KOHESI";
+    caRatio?: number;
+    submergedBase?: boolean;
   };
-  earth: { mode: "RANKINE AKTIF" | "DIAM K0" | "MANUAL"; K: number; surcharge: number };
+  earth: { mode: "RANKINE AKTIF" | "DIAM K0" | "MANUAL"; K: number; surcharge: number; hWaterSoil?: number };
   uplift: { lambda: number };
   extra: { H: number; armH: number; V: number; xV: number; water: number; xWater: number };
-  bearing: { mode: "QIZIN" | "TERZAGHI"; fs: number };
+  bearing: { mode: "QIZIN" | "TERZAGHI"; fs: number; checkMeyerhof?: boolean };
+  seismic?: { enabled: boolean; kh: number; kv: number };
+  seepage?: { enabled: boolean; dCutoffUp: number; dCutoffDown: number; soilType: string };
   cases: CaseInput[];
 }

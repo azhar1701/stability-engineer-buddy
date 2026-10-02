@@ -21,7 +21,10 @@ function TanahPage() {
             if (v === "PROYEK" && s.gamma === 0) patch("soil", { mode: v, gamma: a.soil.gamma, phi: a.soil.phi, c: a.soil.c, mu: a.soil.mu, qa: a.soil.qa });
             else patch("soil", { mode: v });
           }} />
-          <SelectField label="Model tahanan geser" value={s.slidingMode} options={["GESEK", "GESEK + KOHESI"] as const} onChange={(v) => patch("soil", { slidingMode: v })} hint="R = μN (+ c'·B·L)" />
+          <SelectField label="Model tahanan geser" value={s.slidingMode} options={["GESEK", "GESEK + KOHESI"] as const} onChange={(v) => patch("soil", { slidingMode: v })} hint="R = μN (+ ca·b_eff·L)" />
+          {s.slidingMode === "GESEK + KOHESI" && (
+            <NumField label="Rasio adhesi ca/c'" value={s.caRatio ?? 0.67} onChange={(v) => patch("soil", { caRatio: v })} hint="0.5 - 0.75 sesuai SNI 8460:2017" />
+          )}
         </Grid>
         {s.mode === "PROYEK" && <div className="mt-4"><Grid>
           <NumField label="γ tanah" unit="kN/m³" value={s.gamma} onChange={(v) => patch("soil", { gamma: v })} />

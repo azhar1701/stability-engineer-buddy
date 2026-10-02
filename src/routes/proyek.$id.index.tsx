@@ -64,6 +64,18 @@ function ProyekPage() {
           </>}
         </Grid>
       </Section>
+      <Section title="Analisis Gempa Pseudostatik (SNI 1726 / KP-02)">
+        <div className="mb-3 flex items-center gap-2">
+          <input type="checkbox" id="seismic-toggle" checked={p.seismic?.enabled ?? false} onChange={(e) => patch("seismic", { enabled: e.target.checked, kh: p.seismic?.kh ?? 0.12, kv: p.seismic?.kv ?? 0 })} />
+          <label htmlFor="seismic-toggle" className="text-sm font-medium">Aktifkan gaya inersia gempa (Feq = kh · W)</label>
+        </div>
+        {p.seismic?.enabled && (
+          <Grid>
+            <NumField label="Koefisien percepatan horizontal kh" value={p.seismic.kh} onChange={(v) => patch("seismic", { kh: v })} hint="Wilayah Jawa Barat / Ciamis: 0.10 - 0.15" />
+            <NumField label="Koefisien percepatan vertikal kv" value={p.seismic.kv} onChange={(v) => patch("seismic", { kv: v })} hint="Opsional, umum diambil 0 atau 0.5 kh" />
+          </Grid>
+        )}
+      </Section>
       <Section title="Kesiapan input (requirement engine)" aside={<Status s={a.ready ? "LENGKAP" : "BELUM LENGKAP"} />}>
         {!a.ready && <Notice>Hasil stabilitas berstatus BELUM LENGKAP sampai semua item WAJIB terpenuhi.</Notice>}
         <ul className="divide-y text-sm">

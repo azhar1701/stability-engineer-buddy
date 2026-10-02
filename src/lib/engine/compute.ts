@@ -1,5 +1,5 @@
 import { P } from "./params";
-import { CLASS_FACTOR, KECAMATAN, LOAD_CASES, MATERIALS, SOIL_PROFILES, typeById, type ForceKey } from "./master";
+import { CLASS_FACTOR, KECAMATAN, LOAD_CASES, MATERIALS, SEEPAGE_CRITERIA, SOIL_PROFILES, typeById, type ForceKey } from "./master";
 import type { Component, Project } from "./types";
 
 const d2r = (d: number) => (d * Math.PI) / 180;
@@ -48,9 +48,18 @@ export function waterLevels(p: Project) {
   const hy = p.hydraulics;
   if (hy.method === "MANNING") {
     const y = manningDepth(designQ(p), hy.b, hy.z, hy.n, hy.S);
-    return { hu: y, hd: hy.hd, status: y > 0 ? "PENAPISAN" : "BELUM LENGKAP" };
+    return { hu: y, hd: hy.hd, He: 0, status: y > 0 ? "PENAPISAN" : "BELUM LENGKAP" };
   }
-  return { hu: pos(hy.hu), hd: pos(hy.hd), status: hy.hu > 0 || hy.hd > 0 ? "FINAL" : "BELUM LENGKAP" };
+  if (hy.method === "WEIR_CREST") {
+    const Q = designQ(p);
+    const b = pos(hy.beff && hy.beff > 0 ? hy.beff : hy.b > 0 ? hy.b : p.actualWidth > 0 ? p.actualWidth : p.B);
+    const Cd = pos(hy.Cd && hy.Cd > 0 ? hy.Cd : P.CD_PELIMPAH_OGEE);
+    const pMercu = pos(hy.pMercu ?? 0);
+    const He = Q > 0 && b > 0 ? Math.pow(Q / (Cd * b), P.EKSPONEN_PANGKAT_2_3) : 0;
+    const hu = +(pMercu + He).toFixed(3);
+    return { hu, hd: pos(hy.hd), He: +He.toFixed(3), status: hu > 0 ? "PENAPISAN" : "BELUM LENGKAP" };
+  }
+  return { hu: pos(hy.hu), hd: pos(hy.hd), He: 0, status: hy.hu > 0 || hy.hd > 0 ? "FINAL" : "BELUM LENGKAP" };
 }
 
 // ---------- 15/16/17 Tanah ----------
@@ -60,10 +69,10 @@ export function soilParams(p: Project) {
   if (p.soil.mode === "PROYEK") {
     const s = p.soil;
     const ok = s.gamma > 0 && s.phi > 0 && s.mu > 0;
-    return { source: "DATA PROYEK" as const, profileId: "DATA_PROYEK", gamma: s.gamma, phi: s.phi, c: s.c, mu: s.mu, qa: s.qa, status: ok ? "LENGKAP" : "BELUM LENGKAP" };
+    return { source: "DATA PROYEK" as const, profileId: "DATA_PROYEK", gamma: s.gamma, phi: s.phi, c: s.c, mu: s.mu, qa: s.qa, status: ok ? "LENGKAP" : "BELUM LENGKAP", caRatio: s.caRatio, submergedBase: s.submergedBase };
   }
-  if (!prof) return { source: "SCREENING" as const, profileId: "-", gamma: 0, phi: 0, c: 0, mu: 0, qa: 0, status: "BELUM LENGKAP" };
-  return { source: "SCREENING" as const, profileId: prof.id, gamma: prof.gamma, phi: prof.phi, c: prof.c, mu: prof.mu, qa: prof.qa, status: "PENAPISAN" };
+  if (!prof) return { source: "SCREENING" as const, profileId: "-", gamma: 0, phi: 0, c: 0, mu: 0, qa: 0, status: "BELUM LENGKAP", caRatio: 0.67, submergedBase: true };
+  return { source: "SCREENING" as const, profileId: prof.id, gamma: prof.gamma, phi: prof.phi, c: prof.c, mu: prof.mu, qa: prof.qa, status: "PENAPISAN", caRatio: 0.67, submergedBase: true };
 }
 
 export function earthK(p: Project, phi: number) {
@@ -80,12 +89,85 @@ export function bearingFactors(phi: number) {
   const Ng = 2 * (Nq + 1) * t;
   return { Nc, Nq, Ng };
 }
-export function allowableBearing(p: Project) {
+export function allowableBearing(p: Project, caseCtx?: { H: number; N: number; e: number }) {
   const s = soilParams(p);
-  if (p.bearing.mode === "QIZIN") return { qa: s.qa, qu: s.qa * p.bearing.fs, ...bearingFactors(s.phi) };
-  const f = bearingFactors(s.phi);
-  const qu = s.c * f.Nc + s.gamma * pos(p.Df) * f.Nq + P.FAKTOR_SEGITIGA * s.gamma * pos(p.B) * f.Ng;
-  return { qa: p.bearing.fs > 0 ? qu / p.bearing.fs : 0, qu, ...f };
+  const phi = s.phi;
+  const f = bearingFactors(phi);
+  const B = pos(p.B);
+  const L = analysisWidth(p);
+  const Df = pos(p.Df);
+  const gammaEff = (s.submergedBase ?? true) ? Math.max(s.gamma - P.GAMMA_AIR, P.GAMMA_SUB_MIN) : s.gamma;
+
+  if (p.bearing.mode === "QIZIN") {
+    return { qa: s.qa, qu: s.qa * p.bearing.fs, gammaEff, ...f, ic: 1, iq: 1, ig: 1, Beff: B };
+  }
+
+  let Beff = B;
+  let ic = 1, iq = 1, ig = 1;
+
+  if (caseCtx && p.bearing.checkMeyerhof) {
+    Beff = Math.max(B - 2 * Math.abs(caseCtx.e), 0.1 * B);
+    const H = Math.max(caseCtx.H, 0);
+    const N = Math.max(caseCtx.N, 1e-4);
+    if (phi > 0) {
+      const t = Math.tan(d2r(phi));
+      const denom = N + Beff * L * (s.c / t);
+      const m = 2; // plane strain
+      const term = Math.max(1 - H / Math.max(denom, H + 1e-4), 0);
+      iq = Math.pow(term, m);
+      ig = Math.pow(term, m + 1);
+      ic = f.Nq > 1 ? iq - (1 - iq) / (f.Nq - 1) : 1;
+    } else {
+      ic = Math.max(1 - (2 * H) / (Beff * L * Math.max(s.c, 1) * f.Nc), 0.2);
+    }
+  }
+
+  const qu = s.c * f.Nc * ic + s.gamma * Df * f.Nq * iq + P.FAKTOR_SEGITIGA * gammaEff * Beff * f.Ng * ig;
+  const qa = p.bearing.fs > 0 ? qu / p.bearing.fs : 0;
+  return { qa, qu, gammaEff, ...f, ic, iq, ig, Beff };
+}
+
+// ---------- Rembesan & Piping (Lane & Bligh) ----------
+export interface SeepageResult {
+  enabled: boolean;
+  soilType: string;
+  Lv: number;
+  Lh: number;
+  LcreepLane: number;
+  LcreepBligh: number;
+  deltaH: number;
+  Cw: number;
+  CwMin: number;
+  C: number;
+  CMin: number;
+  laneOk: boolean;
+  blighOk: boolean;
+  status: "AMAN" | "BAHAYA PIPING" | "TIDAK AKTIF";
+}
+export function seepageAnalysis(p: Project, wl: ReturnType<typeof waterLevels>): SeepageResult {
+  const sp = p.seepage;
+  if (!sp || !sp.enabled) {
+    return {
+      enabled: false, soilType: "-", Lv: 0, Lh: pos(p.B), LcreepLane: 0, LcreepBligh: 0,
+      deltaH: 0, Cw: 0, CwMin: 5, C: 0, CMin: 12, laneOk: true, blighOk: true, status: "TIDAK AKTIF",
+    };
+  }
+  const crit = SEEPAGE_CRITERIA.find((x) => x.id === sp.soilType) ?? SEEPAGE_CRITERIA[3]!;
+  const dUp = pos(sp.dCutoffUp), dDown = pos(sp.dCutoffDown);
+  const Lv = 2 * dUp + 2 * dDown;
+  const Lh = pos(p.B);
+  const LcreepLane = Lv + (1 / 3) * Lh;
+  const LcreepBligh = Lv + Lh;
+  const deltaH = Math.max(wl.hu - wl.hd, 0);
+  const Cw = deltaH > 0 ? +(LcreepLane / deltaH).toFixed(2) : 999;
+  const C = deltaH > 0 ? +(LcreepBligh / deltaH).toFixed(2) : 999;
+  const laneOk = Cw >= crit.laneCw;
+  const blighOk = C >= crit.blighC;
+  const status = !laneOk || !blighOk ? "BAHAYA PIPING" : "AMAN";
+  return {
+    enabled: true, soilType: crit.name, Lv, Lh, LcreepLane, LcreepBligh, deltaH,
+    Cw, CwMin: crit.laneCw, C, CMin: crit.blighC, laneOk, blighOk, status,
+  };
 }
 
 // ---------- 24 Gaya aktif ----------
@@ -116,6 +198,11 @@ export function analyze(p: Project) {
   const comps = p.components.map((c) => componentProps(c, L, B));
   const W = comps.reduce((s, c) => s + c.W, 0);
   const MW = comps.reduce((s, c) => s + c.M, 0);
+  const sumWzc = comps.reduce((s, c) => s + c.W * c.zc, 0);
+  const sumWxc = comps.reduce((s, c) => s + c.W * c.xc, 0);
+  const Zc_total = W > 0 ? sumWzc / W : 0;
+  const Xc_total = W > 0 ? sumWxc / W : B / 2;
+
   const wl = waterLevels(p);
   const soil = soilParams(p);
   const K = earthK(p, soil.phi);
@@ -128,6 +215,7 @@ export function analyze(p: Project) {
     soil: forceActive(p, "soilLat"), water: forceActive(p, "waterWeight"),
   };
 
+  const seepage = seepageAnalysis(p, wl);
   const readiness = readinessChecks(p, { W, wl, soil, B, L });
   const ready = readiness.every((r) => r.ok || !r.required);
 
@@ -151,25 +239,60 @@ export function analyze(p: Project) {
     }
     if (act.soil && p.Hsoil > 0 && cs.fSoil > 0) {
       const H = p.Hsoil;
-      const Pa = (P.FAKTOR_SEGITIGA * K * soil.gamma * H * H + K * pos(p.earth.surcharge) * H) * L * cs.fSoil;
-      push({ id: "LAT_SOIL", name: "Tekanan tanah lateral", axis: "H", dir: "PENGGERAK", F: Pa, arm: H / T3 }, false);
+      const hw = pos(p.earth.hWaterSoil ?? 0);
+      const hSub = Math.min(hw, H);
+      const hDry = Math.max(H - hSub, 0);
+      const gammaSub = Math.max(soil.gamma - gw, P.GAMMA_SUB_MIN);
+      const surcharge = pos(p.earth.surcharge);
+      
+      const PaDry = P.FAKTOR_SEGITIGA * K * soil.gamma * hDry * hDry;
+      const PaSubSurcharge = K * (surcharge + soil.gamma * hDry) * hSub;
+      const PaSubSoil = P.FAKTOR_SEGITIGA * K * gammaSub * hSub * hSub;
+      const PaSoilTotal = (PaDry + PaSubSurcharge + PaSubSoil + K * surcharge * hDry) * L * cs.fSoil;
+      
+      push({ id: "LAT_SOIL", name: "Tekanan tanah lateral", axis: "H", dir: "PENGGERAK", F: PaSoilTotal, arm: H / T3 }, false);
+      if (hSub > 0) {
+        const PwSoil = P.FAKTOR_SEGITIGA * gw * hSub * hSub * L * cs.fSoil;
+        push({ id: "HYDRO_SOIL", name: "Hidrostatik timbunan tanah", axis: "H", dir: "PENGGERAK", F: PwSoil, arm: hSub / T3 }, false);
+      }
     }
     if (p.extra.H > 0 && cs.fOtherH > 0) push({ id: "OTHER_H", name: "Gaya horizontal lain", axis: "H", dir: "PENGGERAK", F: p.extra.H * cs.fOtherH, arm: p.extra.armH }, false);
     if (p.extra.V > 0) push({ id: "OTHER_V", name: "Gaya vertikal lain", axis: "V", dir: "BAWAH", F: p.extra.V, arm: B - p.extra.xV }, true);
     if (act.water && p.extra.water > 0 && cs.fWater > 0) push({ id: "WATER_WEIGHT", name: "Berat air dalam talang", axis: "V", dir: "BAWAH", F: p.extra.water * cs.fWater, arm: B - p.extra.xWater }, true);
+
+    // Inersia gempa struktur (pseudostatik)
+    const seisInp = p.seismic;
+    const fEq = cs.fEq ?? 0;
+    if (seisInp?.enabled && fEq > 0 && W > 0) {
+      const kh = pos(seisInp.kh);
+      const FeqH = kh * W * fEq;
+      push({ id: "SEIS_H", name: "Inersia gempa struktur (H)", axis: "H", dir: "PENGGERAK", F: FeqH, arm: Zc_total }, false);
+      if (seisInp.kv && seisInp.kv > 0) {
+        const FeqV = pos(seisInp.kv) * W * fEq;
+        push({ id: "SEIS_V", name: "Inersia gempa vertikal (V)", axis: "V", dir: "ATAS", F: FeqV, arm: B - Xc_total }, false);
+      }
+    }
 
     const sum = (pred: (f: Force) => boolean) => forces.filter(pred).reduce((s, f) => s + f.F, 0);
     const N = Math.max(sum((f) => f.dir === "BAWAH") - sum((f) => f.dir === "ATAS"), 0);
     const H = Math.max(sum((f) => f.dir === "PENGGERAK") - sum((f) => f.dir === "PENAHAN"), 0);
     const Mr = forces.reduce((s, f) => s + f.Mr, 0);
     const Mo = forces.reduce((s, f) => s + f.Mo, 0);
-    const R = soil.mu * N + (p.soil.slidingMode === "GESEK + KOHESI" ? soil.c * B * L : 0);
+
+    const aInit = on && N > 0 ? (Mr - Mo) / N : 0;
+    const eInit = B / 2 - aInit;
+    const bContact = Math.abs(eInit) > B / P.PEMBAGI_TENGAH_SEPERTIGA ? (eInit > 0 ? P.FAKTOR_LEBAR_KONTAK * aInit : P.FAKTOR_LEBAR_KONTAK * (B - aInit)) : B;
+    const effectiveContactWidth = Math.min(Math.max(bContact, 0), B);
+    const caRatio = p.soil.caRatio ?? P.KOEF_ADHESI_DEFAULT;
+    const ca = caRatio * soil.c;
+    const R = soil.mu * N + (p.soil.slidingMode === "GESEK + KOHESI" ? ca * effectiveContactWidth * L : 0);
+
     const fsSlide = on && H > 0 ? R / H : null;
     const fsOverturn = on && Mo > 0 ? Mr / Mo : null;
     const factor = p.criteriaMode === "SERAGAM" ? 1 : CLASS_FACTOR[cs.cls];
     const fsSlideMin = crit.slide * factor, fsOverturnMin = crit.overturn * factor;
-    const a = on && N > 0 ? (Mr - Mo) / N : 0;
-    const e = B / 2 - a;
+    const a = aInit;
+    const e = eInit;
     let regime: Regime = "TIDAK AKTIF";
     let qToe = 0, qHeel = 0;
     if (on) {
@@ -184,10 +307,12 @@ export function analyze(p: Project) {
       else if (regime === "KONTAK PARSIAL HEEL") qHeel = (P.FAKTOR_Q_SEGITIGA * N) / (P.FAKTOR_LEBAR_KONTAK * (B - a) * L);
     }
     const qMax = Math.max(qToe, qHeel);
-    const qRatio = bearing.qa > 0 ? qMax / bearing.qa : 0;
+    const caseBearing = allowableBearing(p, { H, N, e });
+    const qMaxAllowed = p.bearing.checkMeyerhof ? caseBearing.qa : bearing.qa;
+    const qRatio = qMaxAllowed > 0 ? qMax / qMaxAllowed : 0;
     const slideOk = fsSlide === null || fsSlide >= fsSlideMin;
     const overturnOk = fsOverturn === null || fsOverturn >= fsOverturnMin;
-    const bearingOk = regime !== "RESULTAN DI LUAR DASAR" && qMax <= bearing.qa;
+    const bearingOk = regime !== "RESULTAN DI LUAR DASAR" && qMax <= qMaxAllowed;
     let status: CaseResult["status"] = "TIDAK AKTIF";
     if (on) {
       if (!ready) status = "BELUM LENGKAP";
@@ -199,7 +324,7 @@ export function analyze(p: Project) {
   });
 
   const envelope = buildEnvelope(cases);
-  return { L, B, comps, W, MW, wl, soil, K, bearing, crit, act, cases, envelope, readiness, ready, Q: designQ(p) };
+  return { L, B, comps, W, MW, Zc_total, Xc_total, wl, soil, K, bearing, crit, act, cases, envelope, readiness, ready, Q: designQ(p), seepage };
 }
 
 function buildEnvelope(cases: CaseResult[]) {

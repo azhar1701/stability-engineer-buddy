@@ -83,29 +83,49 @@ export const KECAMATAN: Record<string, string> = {
   Sukadana: "PERBUKITAN_CAMPURAN", Sukamantri: "RESIDUAL_VULKANIK", Tambaksari: "PERBUKITAN_CAMPURAN",
 };
 
+export interface SeepageCriterion {
+  id: string;
+  name: string;
+  blighC: number;
+  laneCw: number;
+}
+export const SEEPAGE_CRITERIA: SeepageCriterion[] = [
+  { id: "PASIR_SANGAT_HALUS", name: "Pasir sangat halus / Lanau", blighC: 18, laneCw: 8.5 },
+  { id: "PASIR_HALUS", name: "Pasir halus", blighC: 15, laneCw: 7.0 },
+  { id: "PASIR_SEDANG", name: "Pasir sedang", blighC: 12, laneCw: 6.0 },
+  { id: "PASIR_KASAR", name: "Pasir kasar", blighC: 12, laneCw: 5.0 },
+  { id: "KERIKIL_PASIR", name: "Kerikil dan pasir", blighC: 9, laneCw: 3.5 },
+  { id: "LEMPUNG_LUNAK", name: "Lempung lunak", blighC: 8, laneCw: 3.0 },
+  { id: "LEMPUNG_SEDANG", name: "Lempung sedang", blighC: 6, laneCw: 2.0 },
+  { id: "LEMPUNG_KERAS", name: "Lempung keras / Batu", blighC: 4, laneCw: 1.6 },
+];
+
 export type CaseClass = "NORMAL" | "SEMENTARA" | "EKSTREM";
 export const CLASS_FACTOR: Record<CaseClass, number> = { NORMAL: 1, SEMENTARA: 0.9, EKSTREM: 0.8 };
 
 export interface LoadCaseDef {
   id: string; name: string; cls: CaseClass;
   fHu: number; fHd: number; fU: number; fSoil: number; fOtherH: number; fWater: number;
+  fEq?: number;
   applies: TypeId[]; note: string;
 }
 export const LOAD_CASES: LoadCaseDef[] = [
-  { id: "LC01", name: "Normal", cls: "NORMAL", fHu: 1, fHd: 1, fU: 1, fSoil: 1, fOtherH: 1, fWater: 1, applies: ["BND", "SLN", "DND", "BLK", "TLG"], note: "Skenario dasar" },
-  { id: "LC02", name: "Banjir Hulu Tinggi", cls: "SEMENTARA", fHu: 1.25, fHd: 1, fU: 1, fSoil: 1, fOtherH: 1, fWater: 1, applies: ["BND", "SLN", "DND"], note: "Sensitivitas; ganti dengan data proyek" },
-  { id: "LC03", name: "Muka Air Hilir Rendah", cls: "SEMENTARA", fHu: 1, fHd: 0.25, fU: 1, fSoil: 1, fOtherH: 1, fWater: 1, applies: ["BND", "SLN"], note: "Sensitivitas tailwater" },
-  { id: "LC04", name: "Pengeringan / Konstruksi", cls: "SEMENTARA", fHu: 0, fHd: 0, fU: 0, fSoil: 1, fOtherH: 1, fWater: 0, applies: ["BND", "SLN", "DND", "BLK", "TLG"], note: "Kondisi tanpa air" },
-  { id: "LC05", name: "Ekstrem", cls: "EKSTREM", fHu: 1.35, fHd: 0.5, fU: 1, fSoil: 1.1, fOtherH: 1.25, fWater: 1, applies: ["BND", "SLN", "DND", "BLK", "TLG"], note: "Sensitivitas; bukan faktor regulatif universal" },
-  { id: "LC06", name: "Talang Penuh", cls: "NORMAL", fHu: 0, fHd: 0, fU: 0, fSoil: 1, fOtherH: 1, fWater: 1, applies: ["TLG"], note: "Berat air tributari aktif" },
-  { id: "LC07", name: "Talang Kosong", cls: "SEMENTARA", fHu: 0, fHd: 0, fU: 0, fSoil: 1, fOtherH: 1, fWater: 0, applies: ["TLG"], note: "Berat air = 0" },
-  { id: "LC08", name: "Tekanan Tanah Maksimum", cls: "SEMENTARA", fHu: 0, fHd: 0, fU: 0, fSoil: 1.25, fOtherH: 1, fWater: 0, applies: ["DND"], note: "Sensitivitas dinding/talud" },
+  { id: "LC01", name: "Normal", cls: "NORMAL", fHu: 1, fHd: 1, fU: 1, fSoil: 1, fOtherH: 1, fWater: 1, fEq: 0, applies: ["BND", "SLN", "DND", "BLK", "TLG"], note: "Skenario dasar" },
+  { id: "LC02", name: "Banjir Hulu Tinggi", cls: "SEMENTARA", fHu: 1.25, fHd: 1, fU: 1, fSoil: 1, fOtherH: 1, fWater: 1, fEq: 0, applies: ["BND", "SLN", "DND"], note: "Sensitivitas; ganti dengan data proyek" },
+  { id: "LC03", name: "Muka Air Hilir Rendah", cls: "SEMENTARA", fHu: 1, fHd: 0.25, fU: 1, fSoil: 1, fOtherH: 1, fWater: 1, fEq: 0, applies: ["BND", "SLN"], note: "Sensitivitas tailwater" },
+  { id: "LC04", name: "Pengeringan / Konstruksi", cls: "SEMENTARA", fHu: 0, fHd: 0, fU: 0, fSoil: 1, fOtherH: 1, fWater: 0, fEq: 0, applies: ["BND", "SLN", "DND", "BLK", "TLG"], note: "Kondisi tanpa air" },
+  { id: "LC05", name: "Ekstrem", cls: "EKSTREM", fHu: 1.35, fHd: 0.5, fU: 1, fSoil: 1.1, fOtherH: 1.25, fWater: 1, fEq: 0.5, applies: ["BND", "SLN", "DND", "BLK", "TLG"], note: "Sensitivitas; bukan faktor regulatif universal" },
+  { id: "LC06", name: "Talang Penuh", cls: "NORMAL", fHu: 0, fHd: 0, fU: 0, fSoil: 1, fOtherH: 1, fWater: 1, fEq: 0, applies: ["TLG"], note: "Berat air tributari aktif" },
+  { id: "LC07", name: "Talang Kosong", cls: "SEMENTARA", fHu: 0, fHd: 0, fU: 0, fSoil: 1, fOtherH: 1, fWater: 0, fEq: 0, applies: ["TLG"], note: "Berat air = 0" },
+  { id: "LC08", name: "Tekanan Tanah Maksimum", cls: "SEMENTARA", fHu: 0, fHd: 0, fU: 0, fSoil: 1.25, fOtherH: 1, fWater: 0, fEq: 0, applies: ["DND"], note: "Sensitivitas dinding/talud" },
+  { id: "LC09", name: "Gempa saat Air Normal", cls: "EKSTREM", fHu: 1, fHd: 1, fU: 1, fSoil: 1, fOtherH: 1, fWater: 1, fEq: 1, applies: ["BND", "SLN", "DND", "BLK", "TLG"], note: "Kombinasi gempa operasional KP-02 (fEq = 1)" },
 ];
 
 export const SOURCES = [
   { id: "REF-01", name: "Kepmen PUPR No. 05 Tahun 2022", use: "Berat isi material konstruksi" },
-  { id: "REF-02", name: "SNI 8460:2017", use: "Prinsip kebutuhan data geoteknik" },
-  { id: "REF-03", name: "KP-02 Bangunan Utama", use: "Metodologi bendung, kriteria FS per kelas kasus" },
+  { id: "REF-02", name: "SNI 8460:2017", use: "Prinsip kebutuhan data geoteknik, daya dukung, & stabilitas fondasi" },
+  { id: "REF-03", name: "KP-02 Bangunan Utama", use: "Metodologi bendung, kriteria FS, rembesan Lane/Bligh, & gempa" },
   { id: "REF-04", name: "KP-03 Saluran", use: "Metodologi saluran / Manning" },
+  { id: "REF-05", name: "SNI 1726 / SNI 2833", use: "Beban gempa perencanaan infrastruktur air" },
   { id: "ARCH-01", name: "Workbook Ciamis v14 — Parameter Pusat", use: "Konstanta fisik/metode terpusat" },
 ];

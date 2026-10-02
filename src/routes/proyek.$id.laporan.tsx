@@ -42,14 +42,24 @@ function ReportPage() {
         <Table head={["Komponen", "Bentuk", "A m²", "Material", "W kN", "Lengan toe m"]}
           rows={a.comps.map((c) => [c.name, c.shape, <span className="num">{fmt(c.A, 3)}</span>, c.material, <span className="num">{fmt(c.W)}</span>, <span className="num">{fmt(c.armToe, 3)}</span>])} />
       </Section>
-      <Section title="4. Hasil per kasus beban"><CaseTable a={a} /></Section>
-      <Section title="5. Envelope"><EnvelopeTable a={a} /></Section>
-      <Section title="6. Rekomendasi">
+      {a.seepage.enabled && (
+        <Section title="4. Evaluasi Rembesan & Bahaya Piping (KP-02 · Lane & Bligh)">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KV k="Material tanah dasar" v={a.seepage.soilType} />
+            <KV k="Beda energi ΔH" v={fmt(a.seepage.deltaH)} unit="m" />
+            <KV k="Lane Cw aktual" v={fmt(a.seepage.Cw)} unit={`min ${a.seepage.CwMin}`} />
+            <KV k="Status rembesan" v={a.seepage.status} />
+          </div>
+        </Section>
+      )}
+      <Section title={a.seepage.enabled ? "5. Hasil per kasus beban" : "4. Hasil per kasus beban"}><CaseTable a={a} /></Section>
+      <Section title={a.seepage.enabled ? "6. Envelope" : "5. Envelope"}><EnvelopeTable a={a} /></Section>
+      <Section title={a.seepage.enabled ? "7. Rekomendasi teknis" : "6. Rekomendasi"}>
         <ul className="list-disc space-y-1 pl-5">{recs.map((r, i) => <li key={i}><b>[{r.level}]</b> {r.title}. {r.detail}</li>)}</ul>
       </Section>
-      <Section title="7. Sumber & batasan">
+      <Section title={a.seepage.enabled ? "8. Sumber & batasan regulatif" : "7. Sumber & batasan"}>
         <ul className="space-y-1">{SOURCES.map((s) => <li key={s.id}><span className="num text-xs">{s.id}</span> — {s.name}: {s.use}</li>)}</ul>
-        <p className="mt-3 text-xs text-muted-foreground">Hasil berbasis data masukan dan penapisan; wajib melalui engineering review dan verifikasi data lapangan sebelum digunakan untuk desain final.</p>
+        <p className="mt-3 text-xs text-muted-foreground">Hasil analisis berbasis data masukan, penyelidikan geoteknik, dan standar teknis KP-02 & SNI 8460:2017. Laporan ini merupakan nota desain teknis dan wajib diverifikasi oleh Professional Engineer (IPU/IPT) sebelum tahap konstruksi.</p>
       </Section>
     </div>
   );

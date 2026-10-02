@@ -26,10 +26,19 @@ function HidroPage() {
       </Section>
       <Section title="Muka air" aside={<Status s={a.wl.status} />}>
         <Grid>
-          <SelectField label="Metode muka air" value={hy.method} options={[{ value: "MANUAL", label: "KEDALAMAN MANUAL" }, { value: "MANNING", label: "SALURAN MANNING (hu = yn)" }] as const} onChange={(v) => patch("hydraulics", { method: v })} />
+          <SelectField label="Metode muka air" value={hy.method} options={[{ value: "MANUAL", label: "KEDALAMAN MANUAL" }, { value: "MANNING", label: "SALURAN MANNING (hu = yn)" }, { value: "WEIR_CREST", label: "PELIMPAH BENDUNG — KP-02 (Q = Cd·b·He^1.5)" }] as const} onChange={(v) => patch("hydraulics", { method: v })} />
           {hy.method === "MANUAL" && <NumField label="Kedalaman air hulu hu" unit="m" value={hy.hu} onChange={(v) => patch("hydraulics", { hu: v })} />}
           <NumField label="Kedalaman air hilir hd" unit="m" value={hy.hd} onChange={(v) => patch("hydraulics", { hd: v })} />
         </Grid>
+        {hy.method === "WEIR_CREST" && <>
+          <div className="my-4 border-t" />
+          <Notice tone="info">Tinggi muka air di atas mercu: He = (Q / (Cd·b))^(2/3). Tinggi muka air hulu hu = p (tinggi mercu) + He (KP-02 Bagian 4).</Notice>
+          <Grid>
+            <NumField label="Tinggi mercu dari dasar p" unit="m" value={hy.pMercu ?? 2.5} onChange={(v) => patch("hydraulics", { pMercu: v })} />
+            <NumField label="Lebar efektif mercu beff" unit="m" value={hy.beff ?? (p.actualWidth > 0 ? p.actualWidth : p.B)} onChange={(v) => patch("hydraulics", { beff: v })} />
+            <NumField label="Koefisien debit Cd" value={hy.Cd ?? 2.1} onChange={(v) => patch("hydraulics", { Cd: v })} hint="2.0 - 2.2 untuk mercu bulat/ogee" />
+          </Grid>
+        </>}
         {hy.method === "MANNING" && <>
           <div className="my-4 border-t" />
           <Notice tone="info">Kedalaman normal dicari iteratif (langkah 0,02 m) sampai Q Manning ≥ Q rencana.</Notice>

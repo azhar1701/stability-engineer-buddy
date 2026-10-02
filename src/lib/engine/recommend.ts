@@ -22,8 +22,14 @@ export function recommend(a: A): Rec[] {
     r.push({ level: "PERHATIAN", title: "Daya dukung mendekati batas", detail: `Rasio qmax/qizin = ${ratio.value.toFixed(2)}. Pertimbangkan margin tambahan.` });
   if (a.soil.source === "SCREENING")
     r.push({ level: "PERHATIAN", title: "Parameter tanah dari penapisan regional", detail: "Tingkat kepercayaan RENDAH. Lakukan penyelidikan geoteknik (bor, SPT, uji laboratorium) sebelum desain final sesuai SNI 8460:2017." });
+  if (a.seepage.enabled && a.seepage.status === "BAHAYA PIPING")
+    r.push({
+      level: "KRITIS",
+      title: `Bahaya Piping / Erosi Buluh (Lane Cw = ${a.seepage.Cw.toFixed(1)} < ${a.seepage.CwMin})`,
+      detail: `Panjang jalur rayapan rembesan tidak mencukupi untuk jenis ${a.seepage.soilType}. Tambah kedalaman cutoff hulu/hilir atau perpanjang apron dasar (KP-02 Bagian 5).`,
+    });
   if (a.wl.status === "PENAPISAN")
-    r.push({ level: "INFO", title: "Muka air dari estimasi Manning", detail: "Verifikasi dengan data hidrologi/hidraulika proyek." });
+    r.push({ level: "INFO", title: "Muka air dari estimasi Manning / Limpasan Pelimpah", detail: "Verifikasi dengan data hidrologi/hidraulika proyek dan kalibrasi lengkung debit." });
   if (r.length === 0 || (a.envelope.overall === "MEMENUHI" && !r.some((x) => x.level === "KRITIS")))
     r.push({ level: "INFO", title: "Seluruh kasus aktif memenuhi kriteria", detail: "Lanjutkan ke engineering review dan verifikasi data lapangan." });
   return r;
