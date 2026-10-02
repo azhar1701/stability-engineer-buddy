@@ -10,33 +10,180 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProyekIdRouteImport } from './routes/proyek.$id'
+import { Route as ProyekIdIndexRouteImport } from './routes/proyek.$id.index'
+import { Route as ProyekIdDayaDukungRouteImport } from './routes/proyek.$id.daya-dukung'
+import { Route as ProyekIdGayaRouteImport } from './routes/proyek.$id.gaya'
+import { Route as ProyekIdGeometriRouteImport } from './routes/proyek.$id.geometri'
+import { Route as ProyekIdHidraulikaRouteImport } from './routes/proyek.$id.hidraulika'
+import { Route as ProyekIdKasusRouteImport } from './routes/proyek.$id.kasus'
+import { Route as ProyekIdLaporanRouteImport } from './routes/proyek.$id.laporan'
+import { Route as ProyekIdRekomendasiRouteImport } from './routes/proyek.$id.rekomendasi'
+import { Route as ProyekIdStabilitasRouteImport } from './routes/proyek.$id.stabilitas'
+import { Route as ProyekIdTanahRouteImport } from './routes/proyek.$id.tanah'
+import { Route as ProyekIdUpliftRouteImport } from './routes/proyek.$id.uplift'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProyekIdRoute = ProyekIdRouteImport.update({
+  id: '/proyek/$id',
+  path: '/proyek/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProyekIdIndexRoute = ProyekIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdDayaDukungRoute = ProyekIdDayaDukungRouteImport.update({
+  id: '/daya-dukung',
+  path: '/daya-dukung',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdGayaRoute = ProyekIdGayaRouteImport.update({
+  id: '/gaya',
+  path: '/gaya',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdGeometriRoute = ProyekIdGeometriRouteImport.update({
+  id: '/geometri',
+  path: '/geometri',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdHidraulikaRoute = ProyekIdHidraulikaRouteImport.update({
+  id: '/hidraulika',
+  path: '/hidraulika',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdKasusRoute = ProyekIdKasusRouteImport.update({
+  id: '/kasus',
+  path: '/kasus',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdLaporanRoute = ProyekIdLaporanRouteImport.update({
+  id: '/laporan',
+  path: '/laporan',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdRekomendasiRoute = ProyekIdRekomendasiRouteImport.update({
+  id: '/rekomendasi',
+  path: '/rekomendasi',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdStabilitasRoute = ProyekIdStabilitasRouteImport.update({
+  id: '/stabilitas',
+  path: '/stabilitas',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdTanahRoute = ProyekIdTanahRouteImport.update({
+  id: '/tanah',
+  path: '/tanah',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
+const ProyekIdUpliftRoute = ProyekIdUpliftRouteImport.update({
+  id: '/uplift',
+  path: '/uplift',
+  getParentRoute: () => ProyekIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/proyek/$id': typeof ProyekIdRouteWithChildren
+  '/proyek/$id/daya-dukung': typeof ProyekIdDayaDukungRoute
+  '/proyek/$id/gaya': typeof ProyekIdGayaRoute
+  '/proyek/$id/geometri': typeof ProyekIdGeometriRoute
+  '/proyek/$id/hidraulika': typeof ProyekIdHidraulikaRoute
+  '/proyek/$id/kasus': typeof ProyekIdKasusRoute
+  '/proyek/$id/laporan': typeof ProyekIdLaporanRoute
+  '/proyek/$id/rekomendasi': typeof ProyekIdRekomendasiRoute
+  '/proyek/$id/stabilitas': typeof ProyekIdStabilitasRoute
+  '/proyek/$id/tanah': typeof ProyekIdTanahRoute
+  '/proyek/$id/uplift': typeof ProyekIdUpliftRoute
+  '/proyek/$id/': typeof ProyekIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/proyek/$id/daya-dukung': typeof ProyekIdDayaDukungRoute
+  '/proyek/$id/gaya': typeof ProyekIdGayaRoute
+  '/proyek/$id/geometri': typeof ProyekIdGeometriRoute
+  '/proyek/$id/hidraulika': typeof ProyekIdHidraulikaRoute
+  '/proyek/$id/kasus': typeof ProyekIdKasusRoute
+  '/proyek/$id/laporan': typeof ProyekIdLaporanRoute
+  '/proyek/$id/rekomendasi': typeof ProyekIdRekomendasiRoute
+  '/proyek/$id/stabilitas': typeof ProyekIdStabilitasRoute
+  '/proyek/$id/tanah': typeof ProyekIdTanahRoute
+  '/proyek/$id/uplift': typeof ProyekIdUpliftRoute
+  '/proyek/$id': typeof ProyekIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/proyek/$id': typeof ProyekIdRouteWithChildren
+  '/proyek/$id/daya-dukung': typeof ProyekIdDayaDukungRoute
+  '/proyek/$id/gaya': typeof ProyekIdGayaRoute
+  '/proyek/$id/geometri': typeof ProyekIdGeometriRoute
+  '/proyek/$id/hidraulika': typeof ProyekIdHidraulikaRoute
+  '/proyek/$id/kasus': typeof ProyekIdKasusRoute
+  '/proyek/$id/laporan': typeof ProyekIdLaporanRoute
+  '/proyek/$id/rekomendasi': typeof ProyekIdRekomendasiRoute
+  '/proyek/$id/stabilitas': typeof ProyekIdStabilitasRoute
+  '/proyek/$id/tanah': typeof ProyekIdTanahRoute
+  '/proyek/$id/uplift': typeof ProyekIdUpliftRoute
+  '/proyek/$id/': typeof ProyekIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/proyek/$id'
+    | '/proyek/$id/daya-dukung'
+    | '/proyek/$id/gaya'
+    | '/proyek/$id/geometri'
+    | '/proyek/$id/hidraulika'
+    | '/proyek/$id/kasus'
+    | '/proyek/$id/laporan'
+    | '/proyek/$id/rekomendasi'
+    | '/proyek/$id/stabilitas'
+    | '/proyek/$id/tanah'
+    | '/proyek/$id/uplift'
+    | '/proyek/$id/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/proyek/$id/daya-dukung'
+    | '/proyek/$id/gaya'
+    | '/proyek/$id/geometri'
+    | '/proyek/$id/hidraulika'
+    | '/proyek/$id/kasus'
+    | '/proyek/$id/laporan'
+    | '/proyek/$id/rekomendasi'
+    | '/proyek/$id/stabilitas'
+    | '/proyek/$id/tanah'
+    | '/proyek/$id/uplift'
+    | '/proyek/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/proyek/$id'
+    | '/proyek/$id/daya-dukung'
+    | '/proyek/$id/gaya'
+    | '/proyek/$id/geometri'
+    | '/proyek/$id/hidraulika'
+    | '/proyek/$id/kasus'
+    | '/proyek/$id/laporan'
+    | '/proyek/$id/rekomendasi'
+    | '/proyek/$id/stabilitas'
+    | '/proyek/$id/tanah'
+    | '/proyek/$id/uplift'
+    | '/proyek/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ProyekIdRoute: typeof ProyekIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +195,128 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/proyek/$id': {
+      id: '/proyek/$id'
+      path: '/proyek/$id'
+      fullPath: '/proyek/$id'
+      preLoaderRoute: typeof ProyekIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyek/$id/': {
+      id: '/proyek/$id/'
+      path: '/'
+      fullPath: '/proyek/$id/'
+      preLoaderRoute: typeof ProyekIdIndexRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/daya-dukung': {
+      id: '/proyek/$id/daya-dukung'
+      path: '/daya-dukung'
+      fullPath: '/proyek/$id/daya-dukung'
+      preLoaderRoute: typeof ProyekIdDayaDukungRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/gaya': {
+      id: '/proyek/$id/gaya'
+      path: '/gaya'
+      fullPath: '/proyek/$id/gaya'
+      preLoaderRoute: typeof ProyekIdGayaRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/geometri': {
+      id: '/proyek/$id/geometri'
+      path: '/geometri'
+      fullPath: '/proyek/$id/geometri'
+      preLoaderRoute: typeof ProyekIdGeometriRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/hidraulika': {
+      id: '/proyek/$id/hidraulika'
+      path: '/hidraulika'
+      fullPath: '/proyek/$id/hidraulika'
+      preLoaderRoute: typeof ProyekIdHidraulikaRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/kasus': {
+      id: '/proyek/$id/kasus'
+      path: '/kasus'
+      fullPath: '/proyek/$id/kasus'
+      preLoaderRoute: typeof ProyekIdKasusRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/laporan': {
+      id: '/proyek/$id/laporan'
+      path: '/laporan'
+      fullPath: '/proyek/$id/laporan'
+      preLoaderRoute: typeof ProyekIdLaporanRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/rekomendasi': {
+      id: '/proyek/$id/rekomendasi'
+      path: '/rekomendasi'
+      fullPath: '/proyek/$id/rekomendasi'
+      preLoaderRoute: typeof ProyekIdRekomendasiRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/stabilitas': {
+      id: '/proyek/$id/stabilitas'
+      path: '/stabilitas'
+      fullPath: '/proyek/$id/stabilitas'
+      preLoaderRoute: typeof ProyekIdStabilitasRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/tanah': {
+      id: '/proyek/$id/tanah'
+      path: '/tanah'
+      fullPath: '/proyek/$id/tanah'
+      preLoaderRoute: typeof ProyekIdTanahRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
+    '/proyek/$id/uplift': {
+      id: '/proyek/$id/uplift'
+      path: '/uplift'
+      fullPath: '/proyek/$id/uplift'
+      preLoaderRoute: typeof ProyekIdUpliftRouteImport
+      parentRoute: typeof ProyekIdRoute
+    }
   }
 }
 
+interface ProyekIdRouteChildren {
+  ProyekIdDayaDukungRoute: typeof ProyekIdDayaDukungRoute
+  ProyekIdGayaRoute: typeof ProyekIdGayaRoute
+  ProyekIdGeometriRoute: typeof ProyekIdGeometriRoute
+  ProyekIdHidraulikaRoute: typeof ProyekIdHidraulikaRoute
+  ProyekIdKasusRoute: typeof ProyekIdKasusRoute
+  ProyekIdLaporanRoute: typeof ProyekIdLaporanRoute
+  ProyekIdRekomendasiRoute: typeof ProyekIdRekomendasiRoute
+  ProyekIdStabilitasRoute: typeof ProyekIdStabilitasRoute
+  ProyekIdTanahRoute: typeof ProyekIdTanahRoute
+  ProyekIdUpliftRoute: typeof ProyekIdUpliftRoute
+  ProyekIdIndexRoute: typeof ProyekIdIndexRoute
+}
+
+const ProyekIdRouteChildren: ProyekIdRouteChildren = {
+  ProyekIdDayaDukungRoute: ProyekIdDayaDukungRoute,
+  ProyekIdGayaRoute: ProyekIdGayaRoute,
+  ProyekIdGeometriRoute: ProyekIdGeometriRoute,
+  ProyekIdHidraulikaRoute: ProyekIdHidraulikaRoute,
+  ProyekIdKasusRoute: ProyekIdKasusRoute,
+  ProyekIdLaporanRoute: ProyekIdLaporanRoute,
+  ProyekIdRekomendasiRoute: ProyekIdRekomendasiRoute,
+  ProyekIdStabilitasRoute: ProyekIdStabilitasRoute,
+  ProyekIdTanahRoute: ProyekIdTanahRoute,
+  ProyekIdUpliftRoute: ProyekIdUpliftRoute,
+  ProyekIdIndexRoute: ProyekIdIndexRoute,
+}
+
+const ProyekIdRouteWithChildren = ProyekIdRoute._addFileChildren(
+  ProyekIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ProyekIdRoute: ProyekIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
