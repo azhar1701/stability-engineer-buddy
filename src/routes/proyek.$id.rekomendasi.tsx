@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { PageHeader, Section, Status } from "@/components/kit";
+import { PageHeader, Section, Status, StepNav } from "@/components/kit";
 import { recommend } from "@/lib/engine/recommend";
 
 export const Route = createFileRoute("/proyek/$id/rekomendasi")({
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/proyek/$id/rekomendasi")({
 });
 
 function RecPage() {
-  const { result: a } = useProject();
+  const { project: p, result: a } = useProject();
   const recs = recommend(a);
   return (
     <>
@@ -24,6 +24,11 @@ function RecPage() {
           ))}
         </ul>
       </Section>
+      <StepNav
+        prev={{ to: "/proyek/$id/daya-dukung", label: "09. Daya Dukung Fondasi" }}
+        next={{ to: "/proyek/$id/laporan", label: "11. Laporan Teknis" }}
+        projectId={p.id}
+      />
     </>
   );
 }

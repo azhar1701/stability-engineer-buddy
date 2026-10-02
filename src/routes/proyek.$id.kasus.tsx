@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { fmt, Notice, PageHeader, Section } from "@/components/kit";
+import { fmt, Notice, PageHeader, Section, StepNav } from "@/components/kit";
 import { LOAD_CASES, type CaseClass } from "@/lib/engine/master";
 import { defaultCases } from "@/lib/engine/defaults";
 import type { CaseInput } from "@/lib/engine/types";
@@ -55,6 +55,11 @@ function KasusPage() {
           </table>
         </div>
       </Section>
+      <StepNav
+        prev={{ to: "/proyek/$id/gaya", label: "06. Gaya-Gaya Bekerja" }}
+        next={{ to: "/proyek/$id/stabilitas", label: "08. Kontrol Stabilitas" }}
+        projectId={p.id}
+      />
     </>
   );
 }

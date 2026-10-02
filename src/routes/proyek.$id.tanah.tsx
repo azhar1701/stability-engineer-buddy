@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { fmt, Grid, KV, Notice, NumField, PageHeader, Section, SelectField, Status, Table } from "@/components/kit";
+import { fmt, Grid, KV, Notice, NumField, PageHeader, Section, SelectField, Status, StepNav, Table } from "@/components/kit";
 import { SOIL_PROFILES } from "@/lib/engine/master";
 
 export const Route = createFileRoute("/proyek/$id/tanah")({
@@ -49,6 +49,11 @@ function TanahPage() {
         <Table head={["Profil", "Deskripsi", "γ", "φ'", "c'", "μ", "qa", "Kepercayaan"]}
           rows={SOIL_PROFILES.map((x) => [<span className="num text-xs">{x.id}</span>, x.desc, <span className="num">{x.gamma}</span>, <span className="num">{x.phi}</span>, <span className="num">{x.c}</span>, <span className="num">{x.mu}</span>, <span className="num">{x.qa}</span>, x.confidence])} />
       </Section>
+      <StepNav
+        prev={{ to: "/proyek/$id/hidraulika", label: "03. Hidrologi & Muka Air" }}
+        next={{ to: "/proyek/$id/uplift", label: "05. Tekanan Tanah & Rembesan" }}
+        projectId={p.id}
+      />
     </>
   );
 }

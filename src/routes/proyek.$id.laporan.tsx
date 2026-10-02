@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { fmt, KV, Section, Status, Table } from "@/components/kit";
+import { fmt, KV, Section, Status, StepNav, Table } from "@/components/kit";
 import { CaseTable, EnvelopeTable } from "@/components/results";
 import { SOURCES, typeById } from "@/lib/engine/master";
 import { recommend } from "@/lib/engine/recommend";
@@ -61,6 +61,12 @@ function ReportPage() {
         <ul className="space-y-1">{SOURCES.map((s) => <li key={s.id}><span className="num text-xs">{s.id}</span> — {s.name}: {s.use}</li>)}</ul>
         <p className="mt-3 text-xs text-muted-foreground">Hasil analisis berbasis data masukan, penyelidikan geoteknik, dan standar teknis KP-02 & SNI 8460:2017. Laporan ini merupakan nota desain teknis dan wajib diverifikasi oleh Professional Engineer (IPU/IPT) sebelum tahap konstruksi.</p>
       </Section>
+      <div className="no-print">
+        <StepNav
+          prev={{ to: "/proyek/$id/rekomendasi", label: "10. Rekomendasi Teknis" }}
+          projectId={p.id}
+        />
+      </div>
     </div>
   );
 }

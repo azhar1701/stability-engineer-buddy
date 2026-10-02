@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { Grid, NumField, PageHeader, Section, SelectField, Status, TextField, Notice } from "@/components/kit";
+import { Grid, NumField, PageHeader, Section, SelectField, Status, StepNav, TextField, Notice } from "@/components/kit";
 import { KECAMATAN, TYPES, typeById, type ForceKey, type Switch, type TypeId } from "@/lib/engine/master";
 import { componentsFor } from "@/lib/engine/defaults";
 import { forceActive } from "@/lib/engine/compute";
@@ -94,6 +94,10 @@ function ProyekPage() {
           ))}
         </ul>
       </Section>
+      <StepNav
+        next={{ to: "/proyek/$id/geometri", label: "02. Geometri & Material" }}
+        projectId={p.id}
+      />
     </>
   );
 }

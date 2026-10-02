@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { fmt, Grid, KV, NumField, PageHeader, Section, SelectField, Status } from "@/components/kit";
+import { fmt, Grid, KV, NumField, PageHeader, Section, SelectField, Status, StepNav } from "@/components/kit";
 
 export const Route = createFileRoute("/proyek/$id/daya-dukung")({
   head: () => ({ meta: [{ title: "Daya Dukung Fondasi — Stabilitas Bangunan Air" }] }),
@@ -45,6 +45,11 @@ function BearingPage() {
           </div>
         </Section>
       </div>
+      <StepNav
+        prev={{ to: "/proyek/$id/stabilitas", label: "08. Kontrol Stabilitas" }}
+        next={{ to: "/proyek/$id/rekomendasi", label: "10. Rekomendasi Teknis" }}
+        projectId={p.id}
+      />
     </>
   );
 }

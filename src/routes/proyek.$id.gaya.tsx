@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useProject } from "@/lib/useProject";
-import { fmt, Grid, KV, NumField, PageHeader, Section, Table } from "@/components/kit";
+import { fmt, Grid, KV, NumField, PageHeader, Section, StepNav, Table } from "@/components/kit";
 
 export const Route = createFileRoute("/proyek/$id/gaya")({
   head: () => ({ meta: [{ title: "Gaya & Momen — Stabilitas Bangunan Air" }] }),
@@ -37,6 +37,11 @@ function GayaPage() {
           <div><KV k="ΣM penahan" v={fmt(c.Mr)} unit="kNm" /><KV k="ΣM pengguling" v={fmt(c.Mo)} unit="kNm" /></div>
         </div>
       </Section>
+      <StepNav
+        prev={{ to: "/proyek/$id/uplift", label: "05. Tekanan Tanah & Rembesan" }}
+        next={{ to: "/proyek/$id/kasus", label: "07. Kasus Beban" }}
+        projectId={p.id}
+      />
     </>
   );
 }

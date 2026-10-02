@@ -17,19 +17,41 @@ export const Route = createFileRoute("/proyek/$id")({
   component: Layout,
 });
 
-const STEPS = [
-  { to: "/proyek/$id", code: "01", label: "Proyek & Kesiapan", key: "proyek" },
-  { to: "/proyek/$id/geometri", code: "11", label: "Geometri", key: "geometri" },
-  { to: "/proyek/$id/hidraulika", code: "12–14", label: "Hidrologi & Hidraulika", key: "hidraulika" },
-  { to: "/proyek/$id/tanah", code: "15–17", label: "Tanah / Fondasi", key: "tanah" },
-  { to: "/proyek/$id/uplift", code: "18–20", label: "Tekanan Tanah & Uplift", key: "uplift" },
-  { to: "/proyek/$id/gaya", code: "24", label: "Gaya & Momen", key: "gaya" },
-  { to: "/proyek/$id/kasus", code: "25/44", label: "Kasus Beban", key: "kasus" },
-  { to: "/proyek/$id/stabilitas", code: "26/27", label: "Stabilitas & Envelope", key: "stabilitas" },
-  { to: "/proyek/$id/daya-dukung", code: "28", label: "Daya Dukung", key: "daya" },
-  { to: "/proyek/$id/rekomendasi", code: "32", label: "Rekomendasi", key: "rek" },
-  { to: "/proyek/$id/laporan", code: "33", label: "Laporan", key: "lap" },
+export const STAGES = [
+  {
+    title: "I. Profil & Geometri",
+    steps: [
+      { to: "/proyek/$id", code: "01", label: "Proyek & Kesiapan", key: "proyek" },
+      { to: "/proyek/$id/geometri", code: "02", label: "Geometri Komponen", key: "geometri" },
+    ],
+  },
+  {
+    title: "II. Beban Hidraulika & Tanah",
+    steps: [
+      { to: "/proyek/$id/hidraulika", code: "03", label: "Hidrologi & Muka Air", key: "hidraulika" },
+      { to: "/proyek/$id/tanah", code: "04", label: "Tanah / Fondasi", key: "tanah" },
+      { to: "/proyek/$id/uplift", code: "05", label: "Tekanan & Rembesan", key: "uplift" },
+      { to: "/proyek/$id/gaya", code: "06", label: "Beban Tambahan", key: "gaya" },
+    ],
+  },
+  {
+    title: "III. Analisis Stabilitas",
+    steps: [
+      { to: "/proyek/$id/kasus", code: "07", label: "Kasus Beban", key: "kasus" },
+      { to: "/proyek/$id/stabilitas", code: "08", label: "Stabilitas & Envelope", key: "stabilitas" },
+      { to: "/proyek/$id/daya-dukung", code: "09", label: "Daya Dukung", key: "daya" },
+    ],
+  },
+  {
+    title: "IV. Rekomendasi & Laporan",
+    steps: [
+      { to: "/proyek/$id/rekomendasi", code: "10", label: "Rekomendasi Teknis", key: "rek" },
+      { to: "/proyek/$id/laporan", code: "11", label: "Laporan Nota Desain", key: "lap" },
+    ],
+  },
 ] as const;
+
+export const ALL_STEPS = STAGES.flatMap((s) => s.steps);
 
 function Layout() {
   const hydrated = useHydrated();
@@ -43,32 +65,67 @@ function Inner() {
     <div className="p-8 text-sm">Proyek tidak ditemukan. <Link to="/" className="text-primary underline">Kembali ke daftar</Link></div>
   );
   const incomplete = (key: string) => result.readiness.some((r) => r.step === key && r.required && !r.ok);
+  const completedReqCount = result.readiness.filter((r) => r.required && r.ok).length;
+  const totalReqCount = result.readiness.filter((r) => r.required).length;
+  const progressPct = totalReqCount > 0 ? Math.round((completedReqCount / totalReqCount) * 100) : 100;
+
   return (
     <div className="flex min-h-screen">
-      <aside className="no-print sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
-        <Link to="/" className="border-b border-sidebar-border px-4 py-4 text-xs hover:text-sidebar-accent-foreground">← Semua proyek</Link>
-        <div className="border-b border-sidebar-border px-4 py-3">
-          <div className="truncate text-sm font-semibold text-sidebar-accent-foreground">{project.name}</div>
-          <div className="mt-1"><Status s={result.envelope.overall} /></div>
+      <aside className="no-print sticky top-0 hidden h-screen w-72 shrink-0 flex-col bg-sidebar text-sidebar-foreground shadow-lg md:flex">
+        <div className="border-b border-sidebar-border px-5 py-3.5">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-sidebar-foreground/70 transition-colors hover:text-sidebar-accent-foreground">
+            ← Semua proyek
+          </Link>
+          <div className="mt-2.5">
+            <div className="truncate text-base font-bold text-sidebar-accent-foreground">{project.name}</div>
+            <div className="mt-1 flex items-center justify-between">
+              <Status s={result.envelope.overall} />
+              <span className="num text-[11px] text-sidebar-foreground/60">{progressPct}% input siap</span>
+            </div>
+            {/* Input Progress Bar */}
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-sidebar-border">
+              <div className="h-full bg-sidebar-primary transition-all duration-300" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
         </div>
-        <nav className="flex-1 overflow-y-auto py-2">
-          {STEPS.map((s, i) => (
-            <Link key={s.to} to={s.to} params={{ id: project.id }} activeOptions={{ exact: true }}
-              className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-sidebar-accent"
-              activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-sidebar-primary" }}>
-              <span className="num w-5 text-xs text-sidebar-primary">{String(i + 1).padStart(2, "0")}</span>
-              <span className="flex-1">{s.label}</span>
-              {incomplete(s.key) && <span className="h-2 w-2 rounded-full bg-destructive" title="Belum lengkap" />}
-            </Link>
+
+        <nav className="flex-1 overflow-y-auto px-3 py-3">
+          {STAGES.map((stage) => (
+            <div key={stage.title} className="mb-4">
+              <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-sidebar-primary/80">
+                {stage.title}
+              </div>
+              <div className="space-y-0.5">
+                {stage.steps.map((s) => (
+                  <Link key={s.to} to={s.to} params={{ id: project.id }} activeOptions={{ exact: true }}
+                    className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs" }}>
+                    <span className="num w-4 text-[11px] text-sidebar-primary">{s.code}</span>
+                    <span className="flex-1 truncate">{s.label}</span>
+                    {incomplete(s.key) ? (
+                      <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" title="Input wajib belum lengkap" />
+                    ) : (
+                      <span className="text-[10px] text-success font-semibold">✓</span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
-        <button onClick={() => exportXlsx(project)} className="m-3 rounded-sm border border-sidebar-border px-3 py-2 text-xs hover:bg-sidebar-accent">Ekspor Excel</button>
+
+        <div className="border-t border-sidebar-border p-3">
+          <button onClick={() => exportXlsx(project)} className="w-full rounded-md border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 text-xs font-medium text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            Ekspor Kalkulasi Excel
+          </button>
+        </div>
       </aside>
-      <div className="min-w-0 flex-1">
-        <div className="no-print flex gap-2 overflow-x-auto border-b bg-sidebar p-2 md:hidden">
-          <Link to="/" className="px-2 text-xs text-sidebar-foreground">←</Link>
-          {STEPS.map((s) => (
-            <Link key={s.to} to={s.to} params={{ id: project.id }} activeOptions={{ exact: true }} className="whitespace-nowrap rounded-sm px-2 py-1 text-xs text-sidebar-foreground" activeProps={{ className: "bg-sidebar-accent" }}>{s.label}</Link>
+
+      <div className="min-w-0 flex-1 bg-background">
+        <div className="no-print flex gap-2 overflow-x-auto border-b bg-sidebar p-2.5 md:hidden">
+          <Link to="/" className="px-2 text-xs text-sidebar-foreground">← Beranda</Link>
+          {ALL_STEPS.map((s) => (
+            <Link key={s.to} to={s.to} params={{ id: project.id }} activeOptions={{ exact: true }} className="whitespace-nowrap rounded-md px-2.5 py-1 text-xs text-sidebar-foreground" activeProps={{ className: "bg-sidebar-accent font-semibold" }}>{s.label}</Link>
           ))}
         </div>
         <main className="print-full mx-auto max-w-6xl px-6 py-8"><Outlet /></main>

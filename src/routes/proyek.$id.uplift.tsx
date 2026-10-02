@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { fmt, Grid, KV, Notice, NumField, PageHeader, Section, SelectField, Status } from "@/components/kit";
+import { fmt, Grid, KV, Notice, NumField, PageHeader, Section, SelectField, Status, StepNav } from "@/components/kit";
 import { P } from "@/lib/engine/params";
 import { SEEPAGE_CRITERIA } from "@/lib/engine/master";
 
@@ -80,6 +80,11 @@ function UpliftPage() {
           </>
         )}
       </Section>
+      <StepNav
+        prev={{ to: "/proyek/$id/tanah", label: "04. Geoteknik & Parameter Tanah" }}
+        next={{ to: "/proyek/$id/gaya", label: "06. Gaya-Gaya Bekerja" }}
+        projectId={p.id}
+      />
     </>
   );
 }

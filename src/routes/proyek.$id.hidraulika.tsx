@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { fmt, Grid, KV, Notice, NumField, PageHeader, Section, SelectField, Status } from "@/components/kit";
+import { fmt, Grid, KV, Notice, NumField, PageHeader, Section, SelectField, Status, StepNav } from "@/components/kit";
 
 export const Route = createFileRoute("/proyek/$id/hidraulika")({
   head: () => ({ meta: [{ title: "Hidrologi & Hidraulika — Stabilitas Bangunan Air" }] }),
@@ -55,6 +55,11 @@ function HidroPage() {
           <KV k="Δh" v={fmt(Math.max(a.wl.hu - a.wl.hd, 0), 3)} unit="m" />
         </div>
       </Section>
+      <StepNav
+        prev={{ to: "/proyek/$id/geometri", label: "02. Geometri & Material" }}
+        next={{ to: "/proyek/$id/tanah", label: "04. Geoteknik & Parameter Tanah" }}
+        projectId={p.id}
+      />
     </>
   );
 }
