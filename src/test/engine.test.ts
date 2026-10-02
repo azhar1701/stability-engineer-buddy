@@ -14,7 +14,7 @@ describe("mesin stabilitas — sampel UAT bendung", () => {
     expect(c.zc).toBeCloseTo(1 + (2 * (4 + 4)) / (3 * 6));
   });
   it("hidrostatik hulu kasus normal = ½γw hu²", () => {
-    const f = a.cases[0].forces.find((x) => x.id === "HYDRO_UP")!;
+    const f = a.cases[0]!.forces.find((x) => x.id === "HYDRO_UP")!;
     expect(f.F).toBeCloseTo(0.5 * 9.81 * 2.5 * 2.5);
   });
   it("tanah penapisan Panawangan = residual vulkanik", () => {
