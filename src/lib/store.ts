@@ -27,7 +27,26 @@ export const useStore = create<State>()(
         set({ projects: [c, ...get().projects] });
         return c.id;
       },
-      importMany: (ps) => set({ projects: [...ps.map((p) => ({ ...newProject(p.type), ...p, id: uid() })), ...get().projects] }),
+      importMany: (ps) =>
+        set({
+          projects: [
+            ...ps.map((p) => {
+              const base = newProject(p.type);
+              const mergedCases = base.cases.map((bc) => {
+                const existing = p.cases?.find((c) => c.id === bc.id);
+                return existing ? { ...bc, ...existing } : bc;
+              });
+              return {
+                ...base,
+                ...p,
+                id: uid(),
+                cases: mergedCases,
+                updatedAt: Date.now(),
+              };
+            }),
+            ...get().projects,
+          ],
+        }),
     }),
     { name: "stabilitas-bangunan-air-v1", skipHydration: true },
   ),

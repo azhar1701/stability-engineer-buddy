@@ -68,4 +68,12 @@ describe("mesin stabilitas — sampel UAT bendung", () => {
     expect(fSeis.F).toBeCloseTo(0.15 * aEq.W);
     expect(fSeis.arm).toBeCloseTo(aEq.Zc_total);
   });
+
+  it("sinkronisasi nama kecamatan toleran huruf kecil dan spasi", () => {
+    const pLower = { ...p, kecamatan: "  panawangan  " };
+    const aLower = analyze(pLower);
+    expect(aLower.soil.profileId).toBe("RESIDUAL_VULKANIK");
+    expect(aLower.soil.gamma).toBe(18);
+    expect(aLower.readiness.find((r) => r.step === "proyek" && r.label.includes("kecamatan"))?.ok).toBe(true);
+  });
 });

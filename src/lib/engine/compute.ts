@@ -63,8 +63,15 @@ export function waterLevels(p: Project) {
 }
 
 // ---------- 15/16/17 Tanah ----------
+export function findKecamatanProfile(kecamatan?: string): string | undefined {
+  if (!kecamatan) return undefined;
+  const clean = kecamatan.trim().toLowerCase();
+  const found = Object.keys(KECAMATAN).find((k) => k.toLowerCase() === clean);
+  return found ? KECAMATAN[found] : undefined;
+}
+
 export function soilParams(p: Project) {
-  const profileId = KECAMATAN[p.kecamatan];
+  const profileId = findKecamatanProfile(p.kecamatan);
   const prof = SOIL_PROFILES.find((s) => s.id === profileId);
   if (p.soil.mode === "PROYEK") {
     const s = p.soil;
@@ -358,7 +365,7 @@ function readinessChecks(p: Project, ctx: { W: number; wl: ReturnType<typeof wat
     { label: "Nama proyek", ok: p.name.trim().length > 0, required: true, step: "proyek" },
     { label: "Lebar analisis > 0", ok: ctx.L > 0, required: true, step: "proyek" },
     { label: "Lebar dasar fondasi B > 0", ok: ctx.B > 0, required: true, step: "proyek" },
-    { label: "Lokasi kecamatan (untuk penapisan tanah)", ok: !!KECAMATAN[p.kecamatan] || p.soil.mode === "PROYEK", required: true, step: "proyek" },
+    { label: "Lokasi kecamatan (untuk penapisan tanah)", ok: !!findKecamatanProfile(p.kecamatan) || p.soil.mode === "PROYEK", required: true, step: "proyek" },
     { label: "Geometri: berat sendiri > 0", ok: ctx.W > 0, required: true, step: "geometri" },
     { label: "Muka air hulu/hilir", ok: ctx.wl.status !== "BELUM LENGKAP", required: hyd, step: "hidraulika" },
     { label: "Parameter tanah (γ, φ', μ)", ok: ctx.soil.status !== "BELUM LENGKAP", required: true, step: "tanah" },

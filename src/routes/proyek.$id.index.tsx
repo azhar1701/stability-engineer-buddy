@@ -20,7 +20,15 @@ function ProyekPage() {
   const t = typeById(p.type);
   const changeType = (type: TypeId) => {
     const hasGeom = p.components.some((c) => c.b1 > 0 || c.h > 0);
-    update((x) => ({ ...x, type, components: hasGeom ? x.components : componentsFor(type) }));
+    update((x) => ({
+      ...x,
+      type,
+      components: hasGeom ? x.components : componentsFor(type),
+      seepage: {
+        ...(x.seepage ?? { dCutoffUp: 1.0, dCutoffDown: 1.5, soilType: "PASIR_SEDANG" }),
+        enabled: type === "BND",
+      },
+    }));
   };
 
   const hasGeometry = p.components.some((c) => c.b1 > 0 && c.h > 0);
