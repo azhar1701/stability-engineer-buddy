@@ -15,6 +15,10 @@ export function componentProps(c: Component, L: number, B: number): CompResult {
     case "TRAPESIUM": // simetris, b1 dasar, b2 atas
       A = ((b1 + b2) / 2) * h; xl = b1 / 2;
       zl = b1 + b2 > 0 ? (h * (b1 + 2 * b2)) / (P.PEMBAGI_TITIK_BERAT_SEGITIGA * (b1 + b2)) : 0; break;
+    case "TRAPESIUM_LERENG_HILIR": // sisi tegak di kiri (hulu), lereng miring di hilir (profil bendung)
+      A = ((b1 + b2) / 2) * h;
+      xl = b1 + b2 > 0 ? (b1 * b1 + b1 * b2 + b2 * b2) / (P.PEMBAGI_TITIK_BERAT_SEGITIGA * (b1 + b2)) : 0;
+      zl = b1 + b2 > 0 ? (h * (b1 + 2 * b2)) / (P.PEMBAGI_TITIK_BERAT_SEGITIGA * (b1 + b2)) : 0; break;
     case "SEGITIGA_KANAN": // sisi tegak di kiri (hulu)
       A = P.FAKTOR_SEGITIGA * b1 * h; xl = b1 / P.PEMBAGI_TITIK_BERAT_SEGITIGA; zl = h / P.PEMBAGI_TITIK_BERAT_SEGITIGA; break;
     case "SEGITIGA_KIRI":
@@ -140,6 +144,8 @@ export interface SeepageResult {
   soilType: string;
   Lv: number;
   Lh: number;
+  lApronUp: number;
+  lApronDown: number;
   LcreepLane: number;
   LcreepBligh: number;
   deltaH: number;
@@ -153,16 +159,18 @@ export interface SeepageResult {
 }
 export function seepageAnalysis(p: Project, wl: ReturnType<typeof waterLevels>): SeepageResult {
   const sp = p.seepage;
+  const lApronUp = pos(sp?.lApronUp ?? 0);
+  const lApronDown = pos(sp?.lApronDown ?? 0);
+  const Lh = lApronUp + pos(p.B) + lApronDown;
   if (!sp || !sp.enabled) {
     return {
-      enabled: false, soilType: "-", Lv: 0, Lh: pos(p.B), LcreepLane: 0, LcreepBligh: 0,
+      enabled: false, soilType: "-", Lv: 0, Lh, lApronUp, lApronDown, LcreepLane: 0, LcreepBligh: 0,
       deltaH: 0, Cw: 0, CwMin: 5, C: 0, CMin: 12, laneOk: true, blighOk: true, status: "TIDAK AKTIF",
     };
   }
   const crit = SEEPAGE_CRITERIA.find((x) => x.id === sp.soilType) ?? SEEPAGE_CRITERIA[3]!;
   const dUp = pos(sp.dCutoffUp), dDown = pos(sp.dCutoffDown);
   const Lv = 2 * dUp + 2 * dDown;
-  const Lh = pos(p.B);
   const LcreepLane = Lv + (1 / 3) * Lh;
   const LcreepBligh = Lv + Lh;
   const deltaH = Math.max(wl.hu - wl.hd, 0);
@@ -172,7 +180,7 @@ export function seepageAnalysis(p: Project, wl: ReturnType<typeof waterLevels>):
   const blighOk = C >= crit.blighC;
   const status = !laneOk || !blighOk ? "BAHAYA PIPING" : "AMAN";
   return {
-    enabled: true, soilType: crit.name, Lv, Lh, LcreepLane, LcreepBligh, deltaH,
+    enabled: true, soilType: crit.name, Lv, Lh, lApronUp, lApronDown, LcreepLane, LcreepBligh, deltaH,
     Cw, CwMin: crit.laneCw, C, CMin: crit.blighC, laneOk, blighOk, status,
   };
 }
@@ -196,6 +204,7 @@ export interface CaseResult {
   N: number; H: number; Mr: number; Mo: number; R: number;
   fsSlide: number | null; fsOverturn: number | null; fsSlideMin: number; fsOverturnMin: number;
   a: number; e: number; regime: Regime; qToe: number; qHeel: number; qMax: number; qRatio: number;
+  qEquiv?: number;
   slideOk: boolean; overturnOk: boolean; bearingOk: boolean; status: "MEMENUHI" | "TIDAK MEMENUHI" | "PERLU TINJAU" | "BELUM LENGKAP" | "TIDAK AKTIF";
 }
 
@@ -241,7 +250,7 @@ export function analyze(p: Project) {
     if (act.U && cs.fU > 0 && B > 0) {
       const pu = gw * hu * p.uplift.lambda * cs.fU, pd = gw * hd * p.uplift.lambda * cs.fU;
       const U = P.FAKTOR_SEGITIGA * (pu + pd) * B * L;
-      const xFromHeel = pu + pd > 0 ? (B / T3) * ((2 * pu + pd) / (pu + pd)) : B / 2;
+      const xFromHeel = pu + pd > 0 ? (B / T3) * ((pu + 2 * pd) / (pu + pd)) : B / 2;
       if (U > 0) push({ id: "UPLIFT", name: "Gaya angkat", axis: "V", dir: "ATAS", F: U, arm: B - xFromHeel }, false);
     }
     if (act.soil && p.Hsoil > 0 && cs.fSoil > 0) {
@@ -253,11 +262,32 @@ export function analyze(p: Project) {
       const surcharge = pos(p.earth.surcharge);
       
       const PaDry = P.FAKTOR_SEGITIGA * K * soil.gamma * hDry * hDry;
-      const PaSubSurcharge = K * (surcharge + soil.gamma * hDry) * hSub;
-      const PaSubSoil = P.FAKTOR_SEGITIGA * K * gammaSub * hSub * hSub;
-      const PaSoilTotal = (PaDry + PaSubSurcharge + PaSubSoil + K * surcharge * hDry) * L * cs.fSoil;
+      const armDry = hSub + hDry / T3;
       
-      push({ id: "LAT_SOIL", name: "Tekanan tanah lateral", axis: "H", dir: "PENGGERAK", F: PaSoilTotal, arm: H / T3 }, false);
+      const PaSurchargeDry = K * surcharge * hDry;
+      const armSurchargeDry = hSub + hDry / 2;
+      
+      const PaSurchargeSub = K * surcharge * hSub;
+      const armSurchargeSub = hSub / 2;
+      
+      const PaOverburdenSub = K * (soil.gamma * hDry) * hSub;
+      const armOverburdenSub = hSub / 2;
+      
+      const PaSubSoil = P.FAKTOR_SEGITIGA * K * gammaSub * hSub * hSub;
+      const armSubSoil = hSub / T3;
+      
+      const PaSoilTotal = (PaDry + PaSurchargeDry + PaSurchargeSub + PaOverburdenSub + PaSubSoil) * L * cs.fSoil;
+      const MoSoilTotal = (
+        PaDry * armDry +
+        PaSurchargeDry * armSurchargeDry +
+        PaSurchargeSub * armSurchargeSub +
+        PaOverburdenSub * armOverburdenSub +
+        PaSubSoil * armSubSoil
+      ) * L * cs.fSoil;
+      
+      const armSoilEff = PaSoilTotal > 0 ? MoSoilTotal / PaSoilTotal : H / T3;
+      
+      push({ id: "LAT_SOIL", name: "Tekanan tanah lateral", axis: "H", dir: "PENGGERAK", F: PaSoilTotal, arm: armSoilEff }, false);
       if (hSub > 0) {
         const PwSoil = P.FAKTOR_SEGITIGA * gw * hSub * hSub * L * cs.fSoil;
         push({ id: "HYDRO_SOIL", name: "Hidrostatik timbunan tanah", axis: "H", dir: "PENGGERAK", F: PwSoil, arm: hSub / T3 }, false);
@@ -267,16 +297,25 @@ export function analyze(p: Project) {
     if (p.extra.V > 0) push({ id: "OTHER_V", name: "Gaya vertikal lain", axis: "V", dir: "BAWAH", F: p.extra.V, arm: B - p.extra.xV }, true);
     if (act.water && p.extra.water > 0 && cs.fWater > 0) push({ id: "WATER_WEIGHT", name: "Berat air dalam talang", axis: "V", dir: "BAWAH", F: p.extra.water * cs.fWater, arm: B - p.extra.xWater }, true);
 
-    // Inersia gempa struktur (pseudostatik)
+    // Inersia gempa struktur & hidrodinamis air (pseudostatik KP-02)
     const seisInp = p.seismic;
     const fEq = cs.fEq ?? 0;
-    if (seisInp?.enabled && fEq > 0 && W > 0) {
+    if (seisInp?.enabled && fEq > 0) {
       const kh = pos(seisInp.kh);
-      const FeqH = kh * W * fEq;
-      push({ id: "SEIS_H", name: "Inersia gempa struktur (H)", axis: "H", dir: "PENGGERAK", F: FeqH, arm: Zc_total }, false);
-      if (seisInp.kv && seisInp.kv > 0) {
-        const FeqV = pos(seisInp.kv) * W * fEq;
-        push({ id: "SEIS_V", name: "Inersia gempa vertikal (V)", axis: "V", dir: "ATAS", F: FeqV, arm: B - Xc_total }, false);
+      if (W > 0) {
+        const FeqH = kh * W * fEq;
+        push({ id: "SEIS_H", name: "Inersia gempa struktur (H)", axis: "H", dir: "PENGGERAK", F: FeqH, arm: Zc_total }, false);
+        if (seisInp.kv && seisInp.kv > 0) {
+          const FeqV = pos(seisInp.kv) * W * fEq;
+          push({ id: "SEIS_V", name: "Inersia gempa vertikal (V)", axis: "V", dir: "ATAS", F: FeqV, arm: B - Xc_total }, false);
+        }
+      }
+      if (act.hu && hu > 0) {
+        const Pew = P.FAKTOR_WESTERGAARD * kh * gw * hu * hu * L * fEq;
+        const armEw = P.LENGAN_WESTERGAARD * hu;
+        if (Pew > 0) {
+          push({ id: "SEIS_HYDRO", name: "Hidrodinamis gempa hulu (Westergaard)", axis: "H", dir: "PENGGERAK", F: Pew, arm: armEw }, false);
+        }
       }
     }
 
@@ -315,11 +354,14 @@ export function analyze(p: Project) {
     }
     const qMax = Math.max(qToe, qHeel);
     const caseBearing = allowableBearing(p, { H, N, e });
+    const Beff = Math.max(B - 2 * Math.abs(e), 0.1 * B);
+    const qEquiv = on && Beff > 0 && L > 0 ? N / (Beff * L) : 0;
     const qMaxAllowed = p.bearing.checkMeyerhof ? caseBearing.qa : bearing.qa;
-    const qRatio = qMaxAllowed > 0 ? qMax / qMaxAllowed : 0;
+    const qDemand = p.bearing.checkMeyerhof ? qEquiv : qMax;
+    const qRatio = qMaxAllowed > 0 ? qDemand / qMaxAllowed : 0;
     const slideOk = fsSlide === null || fsSlide >= fsSlideMin;
     const overturnOk = fsOverturn === null || fsOverturn >= fsOverturnMin;
-    const bearingOk = regime !== "RESULTAN DI LUAR DASAR" && qMax <= qMaxAllowed;
+    const bearingOk = regime !== "RESULTAN DI LUAR DASAR" && qDemand <= qMaxAllowed;
     let status: CaseResult["status"] = "TIDAK AKTIF";
     if (on) {
       if (!ready) status = "BELUM LENGKAP";
@@ -327,7 +369,7 @@ export function analyze(p: Project) {
       else if (regime.startsWith("KONTAK PARSIAL")) status = "PERLU TINJAU";
       else status = "MEMENUHI";
     }
-    return { id: cs.id, name: cs.name, cls: cs.cls, active: cs.active, applies, hu, hd, forces, N, H, Mr, Mo, R, fsSlide, fsOverturn, fsSlideMin, fsOverturnMin, a, e, regime, qToe, qHeel, qMax, qRatio, slideOk, overturnOk, bearingOk, status };
+    return { id: cs.id, name: cs.name, cls: cs.cls, active: cs.active, applies, hu, hd, forces, N, H, Mr, Mo, R, fsSlide, fsOverturn, fsSlideMin, fsOverturnMin, a, e, regime, qToe, qHeel, qMax, qRatio, qEquiv, slideOk, overturnOk, bearingOk, status };
   });
 
   const envelope = buildEnvelope(cases);

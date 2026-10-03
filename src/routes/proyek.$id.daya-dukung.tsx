@@ -42,9 +42,10 @@ function BearingPage() {
           <KV k="q izin" v={fmt(b.qa, 1)} unit="kPa" />
         </Section>
         <Section title="Pemeriksaan" aside={<Status s={a.envelope.ratio ? (a.envelope.ratio.value <= 1 ? "MEMENUHI" : "TIDAK MEMENUHI") : "T/A"} />}>
-          <KV k="q maks governing" v={fmt(q?.value, 1)} unit="kPa" />
+          <KV k={p.bearing.checkMeyerhof ? "q ekuivalen (N/B'L)" : "q maks governing"} v={fmt(q?.value, 1)} unit="kPa" />
+          {p.bearing.checkMeyerhof && <KV k="q puncak lokal elastis" v={fmt(Math.max(...a.cases.filter(c => c.active).map(c => c.qMax)), 1)} unit="kPa" />}
           <KV k="Kasus" v={q?.caseName ?? "—"} />
-          <KV k="Rasio qmax/qizin" v={fmt(a.envelope.ratio?.value)} />
+          <KV k="Rasio q/qizin" v={fmt(a.envelope.ratio?.value)} />
           <div className="mt-4 h-3 overflow-hidden rounded-sm bg-muted">
             <div className={"h-full " + ((a.envelope.ratio?.value ?? 0) > 1 ? "bg-destructive" : "bg-success")} style={{ width: `${Math.min((a.envelope.ratio?.value ?? 0) * 100, 100)}%` }} />
           </div>

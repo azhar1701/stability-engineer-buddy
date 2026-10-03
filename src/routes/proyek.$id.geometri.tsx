@@ -13,8 +13,11 @@ export const Route = createFileRoute("/proyek/$id/geometri")({
 });
 
 const SHAPES: { v: Shape; l: string }[] = [
-  { v: "PERSEGI", l: "Persegi panjang" }, { v: "TRAPESIUM", l: "Trapesium simetris" },
-  { v: "SEGITIGA_KANAN", l: "Segitiga (tegak hulu)" }, { v: "SEGITIGA_KIRI", l: "Segitiga (tegak hilir)" },
+  { v: "PERSEGI", l: "Persegi panjang" },
+  { v: "TRAPESIUM", l: "Trapesium simetris" },
+  { v: "TRAPESIUM_LERENG_HILIR", l: "Trapesium (tegak hulu, lereng hilir)" },
+  { v: "SEGITIGA_KANAN", l: "Segitiga (tegak hulu)" },
+  { v: "SEGITIGA_KIRI", l: "Segitiga (tegak hilir)" },
 ];
 const cell = "h-8 w-full rounded-sm border border-input bg-card px-1.5 text-sm num";
 
@@ -71,6 +74,7 @@ function GeometriPage() {
               const isZero = c.b1 <= 0 || c.h <= 0;
               const isOverB = p.B > 0 && c.x0 + c.b1 > p.B + 0.001;
               const isNegativeZ = c.z0 < 0;
+              const isTrap = c.shape === "TRAPESIUM" || c.shape === "TRAPESIUM_LERENG_HILIR";
 
               return (
                 <div key={c.id} className={cn("rounded-lg border p-4 transition-all bg-card shadow-xs", isOverB ? "border-destructive/60 bg-destructive/5" : "border-border")}>
@@ -113,12 +117,12 @@ function GeometriPage() {
                     </div>
                     <div>
                       <span className="text-[11px] font-medium text-muted-foreground">
-                        {c.shape === "TRAPESIUM" ? "Lebar Atas b2 (m)" : "Tinggi h (m)"}
+                        {isTrap ? "Lebar Atas b2 (m)" : "Tinggi h (m)"}
                       </span>
-                      <div className="mt-1">{c.shape === "TRAPESIUM" ? num(c, "b2") : num(c, "h")}</div>
+                      <div className="mt-1">{isTrap ? num(c, "b2") : num(c, "h")}</div>
                     </div>
 
-                    {c.shape === "TRAPESIUM" && (
+                    {isTrap && (
                       <div>
                         <span className="text-[11px] font-medium text-muted-foreground">Tinggi h (m)</span>
                         <div className="mt-1">{num(c, "h")}</div>
@@ -183,7 +187,7 @@ function GeometriPage() {
                       <td className="p-1"><input className={cell + " font-sans"} value={c.name} onChange={(e) => upd(c.id, { name: e.target.value })} /></td>
                       <td className="p-1"><select className={cell + " font-sans"} value={c.shape} onChange={(e) => upd(c.id, { shape: e.target.value as Shape })}>{SHAPES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select></td>
                       <td className="w-20 p-1">{num(c, "b1")}</td>
-                      <td className="w-20 p-1">{c.shape === "TRAPESIUM" ? num(c, "b2") : <span className="text-muted-foreground">—</span>}</td>
+                      <td className="w-20 p-1">{c.shape === "TRAPESIUM" || c.shape === "TRAPESIUM_LERENG_HILIR" ? num(c, "b2") : <span className="text-muted-foreground">—</span>}</td>
                       <td className="w-20 p-1">{num(c, "h")}</td>
                       <td className="w-20 p-1">{num(c, "x0")}</td>
                       <td className="w-20 p-1">{num(c, "z0")}</td>
@@ -244,6 +248,7 @@ function Sketch() {
     switch (c.shape) {
       case "PERSEGI": return [[x0, z0], [x0 + b1, z0], [x0 + b1, z0 + h], [x0, z0 + h]];
       case "TRAPESIUM": { const o = (b1 - b2) / 2; return [[x0, z0], [x0 + b1, z0], [x0 + b1 - o, z0 + h], [x0 + o, z0 + h]]; }
+      case "TRAPESIUM_LERENG_HILIR": return [[x0, z0], [x0 + b1, z0], [x0 + b2, z0 + h], [x0, z0 + h]];
       case "SEGITIGA_KANAN": return [[x0, z0], [x0 + b1, z0], [x0, z0 + h]];
       case "SEGITIGA_KIRI": return [[x0, z0], [x0 + b1, z0], [x0 + b1, z0 + h]];
     }
@@ -252,14 +257,18 @@ function Sketch() {
   const hu = a.wl.hu, hd = a.wl.hd;
   const dCutUp = p.seepage?.enabled ? p.seepage.dCutoffUp : 0;
   const dCutDown = p.seepage?.enabled ? p.seepage.dCutoffDown : 0;
+  const lApronUp = p.seepage?.enabled ? (p.seepage.lApronUp ?? 0) : 0;
+  const lApronDown = p.seepage?.enabled ? (p.seepage.lApronDown ?? 0) : 0;
   const maxDepth = Math.max(dCutUp, dCutDown, 0.5);
 
-  const maxX = Math.max(a.B, ...pts.map((q) => q[0]!), 1);
+  const minX = Math.min(0, -lApronUp, ...pts.map((q) => q[0]!));
+  const maxX = Math.max(a.B, a.B + lApronDown, ...pts.map((q) => q[0]!), 1);
   const maxZ = Math.max(...pts.map((q) => q[1]!), hu, 1);
+  const spanX = maxX - minX;
   const pad = 1.8, W = 620, H = 320;
-  const s = Math.min(W / (maxX + 2 * pad), (H - 50) / (maxZ + maxDepth + 0.5));
+  const s = Math.min(W / (spanX + 2 * pad), (H - 50) / (maxZ + maxDepth + 0.5));
   const groundBaseY = H - (maxDepth + 0.8) * s;
-  const X = (x: number) => (x + pad) * s;
+  const X = (x: number) => (x - minX + pad) * s;
   const Z = (z: number) => groundBaseY - z * s;
 
   return (

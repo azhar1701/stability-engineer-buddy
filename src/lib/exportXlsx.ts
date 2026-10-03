@@ -29,6 +29,9 @@ export async function exportXlsx(p: Project) {
       ["Jenis tanah dasar", a.seepage.soilType, "-"],
       ["Kedalaman cutoff hulu", p.seepage?.dCutoffUp ?? 0, "m"],
       ["Kedalaman cutoff hilir", p.seepage?.dCutoffDown ?? 0, "m"],
+      ["Panjang apron hulu (Lu)", a.seepage.lApronUp, "m"],
+      ["Panjang dasar tubuh bendung (B)", p.B, "m"],
+      ["Panjang apron hilir (Ld)", a.seepage.lApronDown, "m"],
       ["Panjang rayapan vertikal (Lv)", a.seepage.Lv, "m"],
       ["Panjang rayapan horizontal (Lh)", a.seepage.Lh, "m"],
       ["Beda tinggi energi (ΔH)", a.seepage.deltaH, "m"],
@@ -41,8 +44,8 @@ export async function exportXlsx(p: Project) {
     ]);
   }
   add("25_KASUS_BEBAN", [
-    ["ID", "Kasus", "Kelas", "hu", "hd", "N (kN)", "H (kN)", "Mr (kNm)", "Mo (kNm)", "R (kN)", "FS geser", "FS geser min", "FS guling", "FS guling min", "a (m)", "e (m)", "Rezim", "q toe", "q heel", "q maks", "qmax/qizin", "Status"],
-    ...a.cases.map((c) => [c.id, c.name, c.cls, r(c.hu), r(c.hd), r(c.N), r(c.H), r(c.Mr), r(c.Mo), r(c.R), r(c.fsSlide), r(c.fsSlideMin), r(c.fsOverturn), r(c.fsOverturnMin), r(c.a), r(c.e), c.regime, r(c.qToe), r(c.qHeel), r(c.qMax), r(c.qRatio), c.status]),
+    ["ID", "Kasus", "Kelas", "hu", "hd", "N (kN)", "H (kN)", "Mr (kNm)", "Mo (kNm)", "R (kN)", "FS geser", "FS geser min", "FS guling", "FS guling min", "a (m)", "e (m)", "Rezim", "q toe", "q heel", "q maks", "q equiv (Meyerhof)", "q/qizin", "Status"],
+    ...a.cases.map((c) => [c.id, c.name, c.cls, r(c.hu), r(c.hd), r(c.N), r(c.H), r(c.Mr), r(c.Mo), r(c.R), r(c.fsSlide), r(c.fsSlideMin), r(c.fsOverturn), r(c.fsOverturnMin), r(c.a), r(c.e), c.regime, r(c.qToe), r(c.qHeel), r(c.qMax), r(c.qEquiv ?? null), r(c.qRatio), c.status]),
   ]);
   const e = a.envelope;
   add("27_ENVELOPE", [

@@ -35,7 +35,7 @@ function UpliftPage() {
           <KV k="K efektif" v={fmt(a.K, 4)} />
           <KV k="H tertahan" v={fmt(p.Hsoil)} unit="m" />
           <KV k="Pa dasar" v={fmt(Pa)} unit="kN" />
-          <KV k="Lengan dari dasar" v={fmt(p.Hsoil / 3, 3)} unit="m" />
+          <KV k="Lengan Pa dari dasar" v={fmt(p.Hsoil > 0 ? (p.earth.surcharge > 0 ? (0.5 * a.K * a.soil.gamma * p.Hsoil ** 2 * (p.Hsoil / 3) + a.K * p.earth.surcharge * p.Hsoil * (p.Hsoil / 2)) / Math.max(Pa / a.L, 0.001) : p.Hsoil / 3) : 0, 3)} unit="m" />
         </div>
       </Section>
       <Section title="Gaya angkat (linear hulu → hilir)" aside={<Status s={a.act.U ? "AKTIF" : "T/A"} />}>
@@ -47,7 +47,8 @@ function UpliftPage() {
             <KV k="pu = γw·hu·λ (heel)" v={fmt(pu)} unit="kPa" />
             <KV k="pd = γw·hd·λ (toe)" v={fmt(pd)} unit="kPa" />
             <KV k="U = ½(pu+pd)·B·L" v={fmt(U)} unit="kN" />
-            <KV k="Titik berat dari heel" v={fmt(pu + pd > 0 ? (a.B / 3) * ((2 * pu + pd) / (pu + pd)) : a.B / 2, 3)} unit="m" />
+            <KV k="Titik berat dari heel" v={fmt(pu + pd > 0 ? (a.B / 3) * ((pu + 2 * pd) / (pu + pd)) : a.B / 2, 3)} unit="m" />
+            <KV k="Lengan momen ke toe" v={fmt(pu + pd > 0 ? a.B - (a.B / 3) * ((pu + 2 * pd) / (pu + pd)) : a.B / 2, 3)} unit="m" />
           </div>
           <svg viewBox="0 0 300 120" className="w-full rounded-sm bg-muted/40">
             <line x1="20" x2="280" y1="20" y2="20" className="stroke-foreground" strokeWidth={2} />
@@ -59,8 +60,8 @@ function UpliftPage() {
       </Section>
       <Section title="Rembesan bawah tanah & bahaya piping (KP-02 · Lane & Bligh)" aside={<Status s={seep.status} />}>
         <div className="mb-3 flex items-center gap-2">
-          <input type="checkbox" id="seepage-toggle" checked={p.seepage?.enabled ?? false} onChange={(e) => patch("seepage", { enabled: e.target.checked, dCutoffUp: p.seepage?.dCutoffUp ?? 1.5, dCutoffDown: p.seepage?.dCutoffDown ?? 2.0, soilType: p.seepage?.soilType ?? "PASIR_SEDANG" })} />
-          <label htmlFor="seepage-toggle" className="text-sm font-medium">Aktifkan evaluasi angka rayapan (creep ratio) cutoff</label>
+          <input type="checkbox" id="seepage-toggle" checked={p.seepage?.enabled ?? false} onChange={(e) => patch("seepage", { enabled: e.target.checked, dCutoffUp: p.seepage?.dCutoffUp ?? 1.5, dCutoffDown: p.seepage?.dCutoffDown ?? 2.0, lApronUp: p.seepage?.lApronUp ?? 0, lApronDown: p.seepage?.lApronDown ?? 0, soilType: p.seepage?.soilType ?? "PASIR_SEDANG" })} />
+          <label htmlFor="seepage-toggle" className="text-sm font-medium">Aktifkan evaluasi angka rayapan (creep ratio) cutoff & apron</label>
         </div>
         {p.seepage?.enabled && (
           <>
@@ -68,10 +69,12 @@ function UpliftPage() {
               <SelectField label="Jenis material tanah dasar" value={p.seepage.soilType} options={SEEPAGE_CRITERIA.map((c) => ({ value: c.id, label: `${c.name} (Lane Cw ≥ ${c.laneCw})` }))} onChange={(v) => patch("seepage", { soilType: v })} />
               <NumField label="Kedalaman cutoff hulu" unit="m" value={p.seepage.dCutoffUp} onChange={(v) => patch("seepage", { dCutoffUp: v })} />
               <NumField label="Kedalaman cutoff hilir" unit="m" value={p.seepage.dCutoffDown} onChange={(v) => patch("seepage", { dCutoffDown: v })} />
+              <NumField label="Panjang apron hulu Lu" unit="m" value={p.seepage.lApronUp ?? 0} onChange={(v) => patch("seepage", { lApronUp: v })} hint="Lantai kedap air hulu di luar B" />
+              <NumField label="Panjang apron/kolam olak hilir Ld" unit="m" value={p.seepage.lApronDown ?? 0} onChange={(v) => patch("seepage", { lApronDown: v })} hint="Lantai kedap air hilir di luar B" />
             </Grid>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <KV k="Panjang rayapan vertikal Lv" v={fmt(seep.Lv)} unit="m" />
-              <KV k="Panjang rayapan horizontal Lh" v={fmt(seep.Lh)} unit="m" />
+              <KV k="Panjang rayapan horizontal Lh" v={fmt(seep.Lh)} unit={`m (Lu + B + Ld)`} />
               <KV k="Beda tinggi energi ΔH" v={fmt(seep.deltaH)} unit="m" />
               <KV k="Lane weighted creep Lc" v={fmt(seep.LcreepLane)} unit="m" />
               <KV k="Lane Cw aktual" v={fmt(seep.Cw)} unit={`min ${seep.CwMin}`} />

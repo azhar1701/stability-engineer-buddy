@@ -1,6 +1,6 @@
 import type { CaseClass, ForceKey, Switch, TypeId } from "./master";
 
-export type Shape = "PERSEGI" | "TRAPESIUM" | "SEGITIGA_KANAN" | "SEGITIGA_KIRI";
+export type Shape = "PERSEGI" | "TRAPESIUM" | "TRAPESIUM_LERENG_HILIR" | "SEGITIGA_KANAN" | "SEGITIGA_KIRI";
 export interface Component {
   id: string; name: string; shape: Shape;
   b1: number; b2: number; h: number; x0: number; z0: number; material: string; gammaCustom?: number;
@@ -43,6 +43,6 @@ export interface Project {
   extra: { H: number; armH: number; V: number; xV: number; water: number; xWater: number };
   bearing: { mode: "QIZIN" | "TERZAGHI"; fs: number; checkMeyerhof?: boolean };
   seismic?: { enabled: boolean; kh: number; kv: number };
-  seepage?: { enabled: boolean; dCutoffUp: number; dCutoffDown: number; soilType: string };
+  seepage?: { enabled: boolean; dCutoffUp: number; dCutoffDown: number; lApronUp?: number; lApronDown?: number; soilType: string };
   cases: CaseInput[];
 }

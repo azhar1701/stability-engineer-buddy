@@ -16,4 +16,6 @@ export const P = {
   KP_REDUKSI_PASIF: 0.5, // faktor reduksi tahanan pasif konservatif (KP-02)
   LANE_CW_DEFAULT: 5.0, // angka rayapan Lane aman default
   BLIGH_C_DEFAULT: 12.0, // angka rayapan Bligh aman default
+  FAKTOR_WESTERGAARD: 7 / 12, // gaya hidrodinamis gempa Westergaard (KP-02 Bagian 4.4)
+  LENGAN_WESTERGAARD: 0.4, // titik tangkap gaya Westergaard = 0.4 hu dari dasar fondasi
 } as const;

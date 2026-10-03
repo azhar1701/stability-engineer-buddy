@@ -150,10 +150,12 @@ function ReportPage() {
       {/* 3. Rembesan */}
       {included.seepage && a.seepage.enabled && (
         <Section title="4. Evaluasi Rembesan & Bahaya Piping (KP-02 · Lane & Bligh)">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <KV k="Material tanah dasar" v={a.seepage.soilType} />
+            <KV k="Panjang rayapan Lv / Lh" v={`${fmt(a.seepage.Lv)} / ${fmt(a.seepage.Lh)}`} unit="m" />
             <KV k="Beda energi ΔH" v={fmt(a.seepage.deltaH)} unit="m" />
             <KV k="Lane Cw aktual" v={fmt(a.seepage.Cw)} unit={`min ${a.seepage.CwMin}`} />
+            <KV k="Bligh C aktual" v={fmt(a.seepage.C)} unit={`min ${a.seepage.CMin}`} />
             <KV k="Status rembesan" v={<Status s={a.seepage.status} />} />
           </div>
         </Section>
