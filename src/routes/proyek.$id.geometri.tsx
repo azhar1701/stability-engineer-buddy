@@ -12,6 +12,8 @@ export const Route = createFileRoute("/proyek/$id/geometri")({
   component: GeometriPage,
 });
 
+import { ParametricProfileModal } from "@/components/ParametricProfileModal";
+
 const SHAPES: { v: Shape; l: string }[] = [
   { v: "PERSEGI", l: "Persegi panjang" },
   { v: "TRAPESIUM", l: "Trapesium simetris" },
@@ -24,6 +26,7 @@ const cell = "h-8 w-full rounded-sm border border-input bg-card px-1.5 text-sm n
 function GeometriPage() {
   const { project: p, result: a, update } = useProject();
   const [viewMode, setViewMode] = useState<"CARD" | "TABLE">("CARD");
+  const [isParametricModalOpen, setIsParametricModalOpen] = useState(false);
   const upd = (id: string, patch: Partial<Component>) => update((x) => ({ ...x, components: x.components.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
   const add = (name = "Komponen") => update((x) => ({ ...x, components: [...x.components, { id: uid(), name, shape: "PERSEGI", b1: 0, b2: 0, h: 0, x0: 0, z0: 0, material: "Beton bertulang" }] }));
   const del = (id: string) => update((x) => ({ ...x, components: x.components.filter((c) => c.id !== id) }));
@@ -43,6 +46,14 @@ function GeometriPage() {
         title="Komponen Struktur Bangunan"
         aside={
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsParametricModalOpen(true)}
+              className="rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary hover:bg-primary/20 transition-all flex items-center gap-1.5"
+            >
+              <span>✨</span>
+              <span>Templat dari Gambar PDF</span>
+            </button>
             <div className="flex rounded-md border border-input bg-muted/50 p-0.5 text-xs">
               <button
                 type="button"
@@ -229,6 +240,19 @@ function GeometriPage() {
         prev={{ to: "/proyek/$id", label: "01. Proyek & Kesiapan" }}
         next={{ to: "/proyek/$id/hidraulika", label: "03. Hidrologi & Muka Air" }}
         projectId={p.id}
+      />
+
+      <ParametricProfileModal
+        project={p}
+        isOpen={isParametricModalOpen}
+        onClose={() => setIsParametricModalOpen(false)}
+        onApply={(newComps, newB) => {
+          update((x) => ({
+            ...x,
+            components: newComps,
+            ...(newB !== undefined && newB > 0 ? { B: newB } : {}),
+          }));
+        }}
       />
     </>
   );

@@ -45,4 +45,11 @@ export interface Project {
   seismic?: { enabled: boolean; kh: number; kv: number };
   seepage?: { enabled: boolean; dCutoffUp: number; dCutoffDown: number; lApronUp?: number; lApronDown?: number; soilType: string };
   cases: CaseInput[];
+  extractedPdfMeta?: {
+    fileName: string;
+    detectedType: TypeId;
+    elevations?: Record<string, number | undefined>;
+    dimensions?: Record<string, number | undefined>;
+    calculated?: Record<string, number | undefined>;
+  };
 }

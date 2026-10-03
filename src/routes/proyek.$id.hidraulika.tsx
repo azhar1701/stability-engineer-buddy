@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
 import { fmt, Grid, KV, Notice, NumField, PageHeader, Section, SelectField, Status, StepNav } from "@/components/kit";
+import { ElevationCalculatorModal } from "@/components/ElevationCalculatorModal";
 
 export const Route = createFileRoute("/proyek/$id/hidraulika")({
   head: () => ({ meta: [{ title: "Hidrologi & Hidraulika — Stabilitas Bangunan Air" }] }),
@@ -8,7 +10,8 @@ export const Route = createFileRoute("/proyek/$id/hidraulika")({
 });
 
 function HidroPage() {
-  const { project: p, result: a, patch } = useProject();
+  const { project: p, result: a, patch, update } = useProject();
+  const [isElevModalOpen, setIsElevModalOpen] = useState(false);
   const h = p.hydrology, hy = p.hydraulics;
   return (
     <>
@@ -29,7 +32,22 @@ function HidroPage() {
         </Grid>
         <div className="mt-4 max-w-sm"><KV k="Q rencana" v={fmt(a.Q, 3)} unit="m³/s" /></div>
       </Section>
-      <Section title="Muka air" aside={<Status s={a.wl.status} />}>
+      <Section
+        title="Muka air"
+        aside={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsElevModalOpen(true)}
+              className="rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary hover:bg-primary/20 transition-all flex items-center gap-1.5"
+            >
+              <span>📐</span>
+              <span>Hitung dari Notasi Elevasi (+El)</span>
+            </button>
+            <Status s={a.wl.status} />
+          </div>
+        }
+      >
         <Grid>
           <SelectField label="Metode muka air" value={hy.method} options={[{ value: "MANUAL", label: "KEDALAMAN MANUAL" }, { value: "MANNING", label: "SALURAN MANNING (hu = yn)" }, { value: "WEIR_CREST", label: "PELIMPAH BENDUNG — KP-02 (Q = Cd·b·He^1.5)" }] as const} onChange={(v) => patch("hydraulics", { method: v })} />
           {hy.method === "MANUAL" && <NumField label="Kedalaman air hulu hu" unit="m" value={hy.hu} onChange={(v) => patch("hydraulics", { hu: v })} />}
@@ -64,6 +82,25 @@ function HidroPage() {
         prev={{ to: "/proyek/$id/geometri", label: "02. Geometri & Material" }}
         next={{ to: "/proyek/$id/tanah", label: "04. Geoteknik & Parameter Tanah" }}
         projectId={p.id}
+      />
+
+      <ElevationCalculatorModal
+        project={p}
+        isOpen={isElevModalOpen}
+        onClose={() => setIsElevModalOpen(false)}
+        onApply={(calc) => {
+          update((x) => ({
+            ...x,
+            hydraulics: {
+              ...x.hydraulics,
+              hu: calc.hu,
+              hd: calc.hd,
+              pMercu: calc.pMercu,
+            },
+            ...(calc.Hsoil > 0 ? { Hsoil: calc.Hsoil } : {}),
+            ...(calc.Df > 0 ? { Df: calc.Df } : {}),
+          }));
+        }}
       />
     </>
   );

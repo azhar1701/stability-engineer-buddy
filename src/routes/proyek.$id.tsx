@@ -4,6 +4,7 @@ import { useHydrated } from "@/lib/store";
 import { useProject } from "@/lib/useProject";
 import { Status, AutosaveBadge } from "@/components/kit";
 import { exportXlsx } from "@/lib/exportXlsx";
+import { PdfViewerDrawer } from "@/components/PdfViewerDrawer";
 
 export const Route = createFileRoute("/proyek/$id")({
   head: () => ({
@@ -63,6 +64,7 @@ function Layout() {
 function Inner() {
   const { project, result } = useProject();
   const [saved, setSaved] = useState(true);
+  const [isPdfDrawerOpen, setIsPdfDrawerOpen] = useState(false);
   const prevUpdatedRef = useRef(project?.updatedAt);
 
   useEffect(() => {
@@ -106,6 +108,20 @@ function Inner() {
               <div className="h-full bg-sidebar-primary transition-all duration-300" style={{ width: `${progressPct}%` }} />
             </div>
           </div>
+
+          {/* Quick PDF Plan Drawer Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsPdfDrawerOpen(!isPdfDrawerOpen)}
+            className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-all ${
+              isPdfDrawerOpen
+                ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                : "border-sidebar-border bg-sidebar-accent/60 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            }`}
+          >
+            <span>📑</span>
+            <span>{isPdfDrawerOpen ? "Tutup Gambar PDF" : "Buka Gambar Rencana PDF"}</span>
+          </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3">
@@ -144,6 +160,13 @@ function Inner() {
         <div className="no-print flex items-center justify-between gap-2 overflow-x-auto border-b bg-sidebar p-2.5 md:hidden">
           <div className="flex items-center gap-2">
             <Link to="/" className="px-2 text-xs text-sidebar-foreground">← Beranda</Link>
+            <button
+              type="button"
+              onClick={() => setIsPdfDrawerOpen(!isPdfDrawerOpen)}
+              className="whitespace-nowrap rounded-md bg-primary/20 px-2.5 py-1 text-xs font-bold text-primary"
+            >
+              📑 PDF
+            </button>
             {ALL_STEPS.map((s) => (
               <Link key={s.to} to={s.to as string} params={{ id: project.id }} activeOptions={{ exact: true }} className="whitespace-nowrap rounded-md px-2.5 py-1 text-xs text-sidebar-foreground" activeProps={{ className: "bg-sidebar-accent font-semibold" }}>{s.label}</Link>
             ))}
@@ -154,6 +177,12 @@ function Inner() {
         </div>
         <main className="print-full mx-auto max-w-6xl px-6 py-8"><Outlet /></main>
       </div>
+
+      {/* Slide-out Split Screen PDF Viewer Drawer */}
+      <PdfViewerDrawer
+        isOpen={isPdfDrawerOpen}
+        onClose={() => setIsPdfDrawerOpen(false)}
+      />
     </div>
   );
 }
