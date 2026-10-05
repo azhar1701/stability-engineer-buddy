@@ -88,6 +88,11 @@ function HidroPage() {
         project={p}
         isOpen={isElevModalOpen}
         onClose={() => setIsElevModalOpen(false)}
+        extractedElevations={
+          p.extractedPdfMeta?.elevations
+            ? (p.extractedPdfMeta.elevations as import("@/lib/pdfExtractor").ExtractedElevations)
+            : undefined
+        }
         onApply={(calc) => {
           update((x) => ({
             ...x,

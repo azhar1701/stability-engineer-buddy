@@ -1,45 +1,75 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { uid } from "@/lib/engine/defaults";
 import type { Component, Project } from "@/lib/engine/types";
 import { MATERIALS } from "@/lib/engine/master";
+import type { ExtractedDimensions } from "@/lib/pdfExtractor";
 
 interface Props {
   project: Project;
   isOpen: boolean;
   onClose: () => void;
   onApply: (newComponents: Component[], newB?: number) => void;
+  /** Optional: pre-fill with values extracted from PDF */
+  extractedDimensions?: ExtractedDimensions;
 }
 
 type TemplateType = "BENDUNG_KP02" | "DINDING_TALUD" | "SALURAN_LINING";
 
-export function ParametricProfileModal({ project, isOpen, onClose, onApply }: Props) {
+export function ParametricProfileModal({ project, isOpen, onClose, onApply, extractedDimensions }: Props) {
   const [template, setTemplate] = useState<TemplateType>(
     project.type === "DND" ? "DINDING_TALUD" : project.type === "SLN" ? "SALURAN_LINING" : "BENDUNG_KP02"
   );
 
   // Parameter Template 1: Bendung KP-02
-  const [bBendung, setBBendung] = useState<number>(project.B > 0 ? project.B : 6.0);
-  const [tLantaiBendung, setTLantaiBendung] = useState<number>(1.0);
-  const [bMercuBendung, setBMercuBendung] = useState<number>(2.0);
-  const [hTubuhBendung, setHTubuhBendung] = useState<number>(2.0);
+  const [bBendung, setBBendung] = useState<number>(extractedDimensions?.B ?? (project.B > 0 ? project.B : 6.0));
+  const [tLantaiBendung, setTLantaiBendung] = useState<number>(extractedDimensions?.tBase ?? 1.0);
+  const [bMercuBendung, setBMercuBendung] = useState<number>(extractedDimensions?.bTop ?? 2.0);
+  const [hTubuhBendung, setHTubuhBendung] = useState<number>(
+    extractedDimensions?.H ? Math.max(extractedDimensions.H - (extractedDimensions.tBase ?? 1.0), 1.0) : 2.0
+  );
   const [xMercuBendung, setXMercuBendung] = useState<number>(1.5);
   const [matBendung, setMatBendung] = useState<string>("Beton bertulang");
 
   // Parameter Template 2: Dinding Talud / Kantilever
-  const [bFooting, setBFooting] = useState<number>(project.B > 0 ? project.B : 3.0);
-  const [tFooting, setTFooting] = useState<number>(0.6);
-  const [hStem, setHStem] = useState<number>(3.5);
-  const [tStemTop, setTStemTop] = useState<number>(0.3);
-  const [tStemBase, setTStemBase] = useState<number>(0.6);
+  const [bFooting, setBFooting] = useState<number>(extractedDimensions?.B ?? (project.B > 0 ? project.B : 3.0));
+  const [tFooting, setTFooting] = useState<number>(extractedDimensions?.tBase ?? 0.6);
+  const [hStem, setHStem] = useState<number>(
+    extractedDimensions?.H ? Math.max(extractedDimensions.H - (extractedDimensions.tBase ?? 0.6), 1.0) : 3.5
+  );
+  const [tStemTop, setTStemTop] = useState<number>(extractedDimensions?.bTop ? Math.max(extractedDimensions.bTop * 0.5, 0.3) : 0.3);
+  const [tStemBase, setTStemBase] = useState<number>(extractedDimensions?.bTop ?? 0.6);
   const [xStemPos, setXStemPos] = useState<number>(1.0);
   const [matDinding, setMatDinding] = useState<string>("Beton bertulang");
 
   // Parameter Template 3: Saluran Lining
-  const [bSaluran, setBSaluran] = useState<number>(project.B > 0 ? project.B : 3.0);
-  const [tDasarSaluran, setTDasarSaluran] = useState<number>(0.2);
-  const [hDindingSaluran, setHDindingSaluran] = useState<number>(1.5);
-  const [tDindingSaluran, setTDindingSaluran] = useState<number>(0.2);
+  const [bSaluran, setBSaluran] = useState<number>(extractedDimensions?.B ?? (project.B > 0 ? project.B : 3.0));
+  const [tDasarSaluran, setTDasarSaluran] = useState<number>(extractedDimensions?.tBase ?? 0.2);
+  const [hDindingSaluran, setHDindingSaluran] = useState<number>(extractedDimensions?.H ?? 1.5);
+  const [tDindingSaluran, setTDindingSaluran] = useState<number>(extractedDimensions?.bTop ?? 0.2);
   const [matSaluran, setMatSaluran] = useState<string>("Beton bertulang");
+
+  // Sync values when extractedDimensions prop updates (e.g., new PDF applied)
+  useEffect(() => {
+    if (!extractedDimensions) return;
+    const { B, tBase, bTop, H } = extractedDimensions;
+    if (B && B > 0) { setBBendung(B); setBFooting(B); setBSaluran(B); }
+    if (tBase && tBase > 0) {
+      setTLantaiBendung(tBase);
+      setTFooting(tBase);
+      setTDasarSaluran(tBase);
+    }
+    if (bTop && bTop > 0) {
+      setBMercuBendung(bTop);
+      setTStemBase(bTop);
+      setTStemTop(Math.max(bTop * 0.5, 0.3));
+      setTDindingSaluran(bTop);
+    }
+    if (H && H > 0) {
+      setHTubuhBendung(Math.max(H - (tBase ?? 1.0), 1.0));
+      setHStem(Math.max(H - (tBase ?? 0.6), 1.0));
+      setHDindingSaluran(H);
+    }
+  }, [extractedDimensions]);
 
   if (!isOpen) return null;
 

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { fmt } from "@/components/kit";
 import type { Project } from "@/lib/engine/types";
+import type { ExtractedElevations } from "@/lib/pdfExtractor";
 
 interface Props {
   project: Project;
@@ -13,17 +14,30 @@ interface Props {
     Hsoil: number;
     Df: number;
   }) => void;
+  /** Optional: pre-fill inputs with elevations parsed from PDF */
+  extractedElevations?: ExtractedElevations;
 }
 
-export function ElevationCalculatorModal({ project, isOpen, onClose, onApply }: Props) {
+export function ElevationCalculatorModal({ project, isOpen, onClose, onApply, extractedElevations }: Props) {
   // Elevasi acuan dasar fondasi (datum z = 0)
-  const [elBase, setElBase] = useState<number>(100.0);
+  const [elBase, setElBase] = useState<number>(extractedElevations?.elBase ?? 100.0);
   // Elevasi-elevasi yang dibaca dari gambar PDF DED
-  const [elMercu, setElMercu] = useState<number>(102.5);
-  const [elWaterUp, setElWaterUp] = useState<number>(103.5);
-  const [elWaterDown, setElWaterDown] = useState<number>(100.8);
-  const [elSoil, setElSoil] = useState<number>(101.5);
-  const [elGroundDown, setElGroundDown] = useState<number>(101.0);
+  const [elMercu, setElMercu] = useState<number>(extractedElevations?.elMercu ?? 102.5);
+  const [elWaterUp, setElWaterUp] = useState<number>(extractedElevations?.elWaterUp ?? 103.5);
+  const [elWaterDown, setElWaterDown] = useState<number>(extractedElevations?.elWaterDown ?? 100.8);
+  const [elSoil, setElSoil] = useState<number>(extractedElevations?.elSoil ?? 101.5);
+  const [elGroundDown, setElGroundDown] = useState<number>(extractedElevations?.elGroundDown ?? 101.0);
+
+  // Sync when a new PDF extraction is applied while modal may be open
+  useEffect(() => {
+    if (!extractedElevations) return;
+    if (extractedElevations.elBase != null) setElBase(extractedElevations.elBase);
+    if (extractedElevations.elMercu != null) setElMercu(extractedElevations.elMercu);
+    if (extractedElevations.elWaterUp != null) setElWaterUp(extractedElevations.elWaterUp);
+    if (extractedElevations.elWaterDown != null) setElWaterDown(extractedElevations.elWaterDown);
+    if (extractedElevations.elSoil != null) setElSoil(extractedElevations.elSoil);
+    if (extractedElevations.elGroundDown != null) setElGroundDown(extractedElevations.elGroundDown);
+  }, [extractedElevations]);
 
   if (!isOpen) return null;
 

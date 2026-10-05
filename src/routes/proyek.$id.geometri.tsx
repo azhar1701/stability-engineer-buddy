@@ -242,10 +242,16 @@ function GeometriPage() {
         projectId={p.id}
       />
 
+
       <ParametricProfileModal
         project={p}
         isOpen={isParametricModalOpen}
         onClose={() => setIsParametricModalOpen(false)}
+        extractedDimensions={
+          p.extractedPdfMeta?.dimensions
+            ? (p.extractedPdfMeta.dimensions as import("@/lib/pdfExtractor").ExtractedDimensions)
+            : undefined
+        }
         onApply={(newComps, newB) => {
           update((x) => ({
             ...x,
@@ -254,6 +260,7 @@ function GeometriPage() {
           }));
         }}
       />
+
     </>
   );
 }

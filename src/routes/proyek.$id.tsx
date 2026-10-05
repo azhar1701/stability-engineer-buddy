@@ -5,6 +5,7 @@ import { useProject } from "@/lib/useProject";
 import { Status, AutosaveBadge } from "@/components/kit";
 import { exportXlsx } from "@/lib/exportXlsx";
 import { PdfViewerDrawer } from "@/components/PdfViewerDrawer";
+import type { ExtractedPdfData } from "@/lib/pdfExtractor";
 
 export const Route = createFileRoute("/proyek/$id")({
   head: () => ({
@@ -62,10 +63,51 @@ function Layout() {
 }
 
 function Inner() {
-  const { project, result } = useProject();
+  const { project, result, update } = useProject();
   const [saved, setSaved] = useState(true);
   const [isPdfDrawerOpen, setIsPdfDrawerOpen] = useState(false);
   const prevUpdatedRef = useRef(project?.updatedAt);
+
+  const handleApplyExtracted = (data: ExtractedPdfData) => {
+    update((p) => ({
+      ...p,
+      // Adapt structure type to detected PDF classification
+      type: data.detectedType,
+      // Foundation geometry from PDF dimensions
+      ...(data.dimensions.B && data.dimensions.B > 0 ? { B: data.dimensions.B } : {}),
+      ...(data.calculated.Df > 0 ? { Df: data.calculated.Df } : {}),
+      ...(data.calculated.Hsoil > 0 ? { Hsoil: data.calculated.Hsoil } : {}),
+      // Hydraulics: water levels & weir crest height from elevations
+      hydraulics: {
+        ...p.hydraulics,
+        ...(data.calculated.hu > 0 ? { hu: data.calculated.hu } : {}),
+        ...(data.calculated.hd > 0 ? { hd: data.calculated.hd } : {}),
+        ...(data.calculated.pMercu > 0 ? { pMercu: data.calculated.pMercu } : {}),
+      },
+      // Geometry components auto-generated from PDF dimensions
+      ...(data.suggestedComponents.length > 0
+        ? { components: data.suggestedComponents }
+        : {}),
+      // Seepage apron parameters if present in PDF
+      seepage: {
+        ...p.seepage,
+        enabled: p.seepage?.enabled ?? data.detectedType === "BND",
+        soilType: p.seepage?.soilType ?? "PASIR_SEDANG",
+        dCutoffUp: p.seepage?.dCutoffUp ?? 1.0,
+        dCutoffDown: p.seepage?.dCutoffDown ?? 1.5,
+        ...(data.dimensions.lApronUp != null ? { lApronUp: data.dimensions.lApronUp } : {}),
+        ...(data.dimensions.lApronDown != null ? { lApronDown: data.dimensions.lApronDown } : {}),
+      },
+      // Persist PDF metadata for cross-step reference
+      extractedPdfMeta: {
+        fileName: data.fileName,
+        detectedType: data.detectedType,
+        elevations: data.elevations as Record<string, number | undefined>,
+        dimensions: data.dimensions as Record<string, number | undefined>,
+        calculated: data.calculated as Record<string, number | undefined>,
+      },
+    }));
+  };
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -182,6 +224,8 @@ function Inner() {
       <PdfViewerDrawer
         isOpen={isPdfDrawerOpen}
         onClose={() => setIsPdfDrawerOpen(false)}
+        onApplyExtracted={handleApplyExtracted}
+        currentProjectType={project.type}
       />
     </div>
   );
