@@ -17,11 +17,20 @@ export const Route = createFileRoute("/proyek/$id/geometri")({
 const SHAPES: { v: Shape; l: string }[] = [
   { v: "PERSEGI", l: "Persegi panjang" },
   { v: "TRAPESIUM", l: "Trapesium simetris" },
-  { v: "TRAPESIUM_LERENG_HILIR", l: "Trapesium (tegak hulu, lereng hilir)" },
+  { v: "TRAPESIUM_LERENG_HILIR", l: "Trapesium (tegak hulu/luar, lereng hilir/dalam)" },
+  { v: "TRAPESIUM_LERENG_HULU", l: "Trapesium (lereng hulu/dalam, tegak hilir/luar)" },
   { v: "SEGITIGA_KANAN", l: "Segitiga (tegak hulu)" },
   { v: "SEGITIGA_KIRI", l: "Segitiga (tegak hilir)" },
 ];
 const cell = "h-8 w-full rounded-sm border border-input bg-card px-1.5 text-sm num";
+
+function flipSlope(shape: Shape): Shape {
+  if (shape === "TRAPESIUM_LERENG_HILIR") return "TRAPESIUM_LERENG_HULU";
+  if (shape === "TRAPESIUM_LERENG_HULU") return "TRAPESIUM_LERENG_HILIR";
+  if (shape === "SEGITIGA_KANAN") return "SEGITIGA_KIRI";
+  if (shape === "SEGITIGA_KIRI") return "SEGITIGA_KANAN";
+  return shape;
+}
 
 function GeometriPage() {
   const { project: p, result: a, update } = useProject();
@@ -35,6 +44,54 @@ function GeometriPage() {
   const num = (c: Component, k: keyof Component) => (
     <input type="number" step="any" className={cell} value={c[k] as number} onChange={(e) => upd(c.id, { [k]: parseFloat(e.target.value) || 0 })} />
   );
+
+  const flipSlopeInPlace = (c: Component) => {
+    upd(c.id, { shape: flipSlope(c.shape) });
+  };
+
+  const mirrorToOppositeSide = (c: Component) => {
+    const newX0 = Math.max(0, +(p.B - (c.x0 + c.b1)).toFixed(4));
+    const newShape = flipSlope(c.shape);
+    let newName = c.name;
+    if (newName.toLowerCase().includes("kiri")) {
+      newName = newName.replace(/kiri/i, (m) => (m === "Kiri" ? "Kanan" : m === "KIRI" ? "KANAN" : "kanan"));
+    } else if (newName.toLowerCase().includes("kanan")) {
+      newName = newName.replace(/kanan/i, (m) => (m === "Kanan" ? "Kiri" : m === "KANAN" ? "KIRI" : "kiri"));
+    }
+    upd(c.id, { x0: newX0, shape: newShape, name: newName });
+  };
+
+  const duplicateAndMirror = (c: Component) => {
+    let newName = c.name;
+    if (newName.toLowerCase().includes("kiri")) {
+      newName = newName.replace(/kiri/i, (m) => (m === "Kiri" ? "Kanan" : m === "KIRI" ? "KANAN" : "kanan"));
+    } else if (newName.toLowerCase().includes("kanan")) {
+      newName = newName.replace(/kanan/i, (m) => (m === "Kanan" ? "Kiri" : m === "KANAN" ? "KIRI" : "kiri"));
+    } else if (newName.toLowerCase().includes("hulu")) {
+      newName = newName.replace(/hulu/i, (m) => (m === "Hilir" ? "Hulu" : m === "HILIR" ? "HULU" : "hilir"));
+    } else if (newName.toLowerCase().includes("hilir")) {
+      newName = newName.replace(/hilir/i, (m) => (m === "Hulu" ? "Hilir" : m === "HULU" ? "HILIR" : "hilir"));
+    } else {
+      newName = `${newName} (Mirror)`;
+    }
+
+    const newX0 = Math.max(0, +(p.B - (c.x0 + c.b1)).toFixed(4));
+    const newShape = flipSlope(c.shape);
+
+    update((x) => ({
+      ...x,
+      components: [
+        ...x.components,
+        {
+          ...c,
+          id: uid(),
+          name: newName,
+          x0: newX0,
+          shape: newShape,
+        },
+      ],
+    }));
+  };
 
   return (
     <>
@@ -87,7 +144,8 @@ function GeometriPage() {
               const isZero = c.b1 <= 0 || c.h <= 0;
               const isOverB = p.B > 0 && c.x0 + c.b1 > p.B + 0.001;
               const isNegativeZ = c.z0 < 0;
-              const isTrap = c.shape === "TRAPESIUM" || c.shape === "TRAPESIUM_LERENG_HILIR";
+              const isTrap = c.shape === "TRAPESIUM" || c.shape === "TRAPESIUM_LERENG_HILIR" || c.shape === "TRAPESIUM_LERENG_HULU";
+              const canFlip = c.shape === "TRAPESIUM_LERENG_HILIR" || c.shape === "TRAPESIUM_LERENG_HULU" || c.shape === "SEGITIGA_KANAN" || c.shape === "SEGITIGA_KIRI";
 
               return (
                 <div key={c.id} className={cn("rounded-lg border p-4 transition-all bg-card shadow-xs", isOverB ? "border-destructive/60 bg-destructive/5" : "border-border")}>
@@ -103,9 +161,40 @@ function GeometriPage() {
                         placeholder="Nama Komponen"
                       />
                     </div>
-                    <button onClick={() => del(c.id)} className="rounded p-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
-                      Hapus ✕
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {canFlip && (
+                        <button
+                          type="button"
+                          onClick={() => flipSlopeInPlace(c)}
+                          title="Balik arah lereng miring (tegak hulu ⇄ tegak hilir)"
+                          className="rounded px-2 py-1 text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/40 border border-sky-200 dark:border-sky-800 transition-colors flex items-center gap-1"
+                        >
+                          <span>🪞</span>
+                          <span>Balik Lereng</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => mirrorToOppositeSide(c)}
+                        title="Cerminkan posisi ke sisi lawan saluran [x0 = B - (x0 + b1)] dan balik arah lereng"
+                        className="rounded px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground border border-input transition-colors flex items-center gap-1"
+                      >
+                        <span>↔️</span>
+                        <span>Cermin Posisi</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => duplicateAndMirror(c)}
+                        title="Duplikasi dan cerminkan dinding ini ke sisi seberang"
+                        className="rounded px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/10 border border-primary/20 transition-colors flex items-center gap-1"
+                      >
+                        <span>📋</span>
+                        <span>Duplikasi & Cermin</span>
+                      </button>
+                      <button onClick={() => del(c.id)} title="Hapus komponen" className="rounded p-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors ml-1">
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
                   {/* Form fields */}
@@ -200,7 +289,7 @@ function GeometriPage() {
                       <td className="p-1"><input className={cell + " font-sans"} value={c.name} onChange={(e) => upd(c.id, { name: e.target.value })} /></td>
                       <td className="p-1"><select className={cell + " font-sans"} value={c.shape} onChange={(e) => upd(c.id, { shape: e.target.value as Shape })}>{SHAPES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select></td>
                       <td className="w-20 p-1">{num(c, "b1")}</td>
-                      <td className="w-20 p-1">{c.shape === "TRAPESIUM" || c.shape === "TRAPESIUM_LERENG_HILIR" ? num(c, "b2") : <span className="text-muted-foreground">—</span>}</td>
+                      <td className="w-20 p-1">{c.shape === "TRAPESIUM" || c.shape === "TRAPESIUM_LERENG_HILIR" || c.shape === "TRAPESIUM_LERENG_HULU" ? num(c, "b2") : <span className="text-muted-foreground">—</span>}</td>
                       <td className="w-20 p-1">{num(c, "h")}</td>
                       <td className="w-20 p-1">{num(c, "x0")}</td>
                       <td className="w-20 p-1">{num(c, "z0")}</td>
@@ -216,7 +305,37 @@ function GeometriPage() {
                       <td className="num p-1 text-right">{fmt(r.zc, 3)}</td>
                       <td className="num p-1 text-right font-medium">{fmt(r.W)}</td>
                       <td className="num p-1 text-right">{fmt(r.M)}</td>
-                      <td className="p-1"><button onClick={() => del(c.id)} className="text-xs text-destructive">✕</button></td>
+                      <td className="p-1 whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          {(c.shape === "TRAPESIUM_LERENG_HILIR" || c.shape === "TRAPESIUM_LERENG_HULU" || c.shape === "SEGITIGA_KANAN" || c.shape === "SEGITIGA_KIRI") && (
+                            <button
+                              type="button"
+                              onClick={() => flipSlopeInPlace(c)}
+                              title="Balik orientasi lereng (🪞)"
+                              className="rounded p-1 text-xs text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40"
+                            >
+                              🪞
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => mirrorToOppositeSide(c)}
+                            title="Cermin posisi ke sisi seberang saluran (↔️)"
+                            className="rounded p-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                          >
+                            ↔️
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => duplicateAndMirror(c)}
+                            title="Duplikasi & Cerminkan Dinding (📋)"
+                            className="rounded p-1 text-xs text-primary hover:bg-primary/10"
+                          >
+                            📋
+                          </button>
+                          <button onClick={() => del(c.id)} title="Hapus" className="rounded p-1 text-xs text-destructive hover:bg-destructive/10">✕</button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}

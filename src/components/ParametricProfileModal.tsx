@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { uid } from "@/lib/engine/defaults";
-import type { Component, Project } from "@/lib/engine/types";
+import type { Component, Project, Shape } from "@/lib/engine/types";
 import { MATERIALS } from "@/lib/engine/master";
 import type { ExtractedDimensions } from "@/lib/pdfExtractor";
 
@@ -46,6 +46,10 @@ export function ParametricProfileModal({ project, isOpen, onClose, onApply, extr
   const [tDasarSaluran, setTDasarSaluran] = useState<number>(extractedDimensions?.tBase ?? 0.2);
   const [hDindingSaluran, setHDindingSaluran] = useState<number>(extractedDimensions?.H ?? 1.5);
   const [tDindingSaluran, setTDindingSaluran] = useState<number>(extractedDimensions?.bTop ?? 0.2);
+  const [wallStyleSaluran, setWallStyleSaluran] = useState<"PERSEGI" | "TRAPESIUM_LERENG_DALAM" | "TRAPESIUM_LERENG_LUAR">("TRAPESIUM_LERENG_DALAM");
+  const [tDindingBawahSaluran, setTDindingBawahSaluran] = useState<number>(extractedDimensions?.bTop ?? 0.35);
+  const [tDindingAtasSaluran, setTDindingAtasSaluran] = useState<number>(0.2);
+  const [mirrorRightWall, setMirrorRightWall] = useState<boolean>(true);
   const [matSaluran, setMatSaluran] = useState<string>("Beton bertulang");
 
   // Sync values when extractedDimensions prop updates (e.g., new PDF applied)
@@ -160,28 +164,46 @@ export function ParametricProfileModal({ project, isOpen, onClose, onApply, extr
         material: matSaluran,
       });
 
+      const isTrap = wallStyleSaluran !== "PERSEGI";
+      const b1Wall = isTrap ? tDindingBawahSaluran : tDindingSaluran;
+      const b2Wall = isTrap ? tDindingAtasSaluran : 0;
+
       // 2. Dinding kiri saluran
+      let leftShape: Shape = "PERSEGI";
+      if (wallStyleSaluran === "TRAPESIUM_LERENG_DALAM") {
+        leftShape = "TRAPESIUM_LERENG_HILIR"; // sisi luar tegak, lereng menghadap ke dalam saluran
+      } else if (wallStyleSaluran === "TRAPESIUM_LERENG_LUAR") {
+        leftShape = "TRAPESIUM_LERENG_HULU"; // sisi dalam saluran tegak, lereng menghadap ke luar
+      }
+
       comps.push({
         id: uid(),
         name: "Dinding kiri saluran",
-        shape: "PERSEGI",
-        b1: tDindingSaluran,
-        b2: 0,
+        shape: leftShape,
+        b1: b1Wall,
+        b2: b2Wall,
         h: hDindingSaluran,
         x0: 0,
         z0: tDasarSaluran,
         material: matSaluran,
       });
 
-      // 3. Dinding kanan saluran
+      // 3. Dinding kanan saluran (mirror / reflect)
+      let rightShape: Shape = "PERSEGI";
+      if (wallStyleSaluran === "TRAPESIUM_LERENG_DALAM") {
+        rightShape = mirrorRightWall ? "TRAPESIUM_LERENG_HULU" : "TRAPESIUM_LERENG_HILIR";
+      } else if (wallStyleSaluran === "TRAPESIUM_LERENG_LUAR") {
+        rightShape = mirrorRightWall ? "TRAPESIUM_LERENG_HILIR" : "TRAPESIUM_LERENG_HULU";
+      }
+
       comps.push({
         id: uid(),
         name: "Dinding kanan saluran",
-        shape: "PERSEGI",
-        b1: tDindingSaluran,
-        b2: 0,
+        shape: rightShape,
+        b1: b1Wall,
+        b2: b2Wall,
         h: hDindingSaluran,
-        x0: Math.max(bSaluran - tDindingSaluran, 0),
+        x0: Math.max(+(bSaluran - b1Wall).toFixed(4), 0),
         z0: tDasarSaluran,
         material: matSaluran,
       });
@@ -429,7 +451,28 @@ export function ParametricProfileModal({ project, isOpen, onClose, onApply, extr
           {template === "SALURAN_LINING" && (
             <div className="space-y-3">
               <div className="rounded-md border border-primary/20 bg-primary/5 p-2.5 text-xs text-muted-foreground">
-                <strong className="text-foreground">Profil Saluran Terbuka:</strong> Menghasilkan 3 komponen otomatis: Pelat dasar lining, dinding kiri, dan dinding kanan.
+                <strong className="text-foreground">Profil Saluran Terbuka:</strong> Menghasilkan 3 komponen otomatis: Pelat dasar lining, dinding kiri, dan dinding kanan yang dapat dicerminkan (mirror) secara adaptif.
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-muted-foreground">
+                  Gaya & Orientasi Lereng Dinding Saluran
+                </label>
+                <select
+                  value={wallStyleSaluran}
+                  onChange={(e) => setWallStyleSaluran(e.target.value as any)}
+                  className="num h-8 w-full rounded-md border border-input bg-card px-2 text-xs text-foreground mt-1"
+                >
+                  <option value="TRAPESIUM_LERENG_DALAM">
+                    Trapesium Lereng Dalam (Sisi luar tegak, lereng miring di dalam saluran)
+                  </option>
+                  <option value="TRAPESIUM_LERENG_LUAR">
+                    Trapesium Lereng Luar (Sisi dalam tegak, lereng miring di luar saluran)
+                  </option>
+                  <option value="PERSEGI">
+                    Persegi Panjang (Tegak seragam di kedua sisi)
+                  </option>
+                </select>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -469,19 +512,64 @@ export function ParametricProfileModal({ project, isOpen, onClose, onApply, extr
                     className="num h-8 w-full rounded-md border border-input bg-card px-2 text-xs text-foreground mt-1"
                   />
                 </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground">
-                    Tebal Dinding Saluran tw (m)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={tDindingSaluran}
-                    onChange={(e) => setTDindingSaluran(parseFloat(e.target.value) || 0)}
-                    className="num h-8 w-full rounded-md border border-input bg-card px-2 text-xs text-foreground mt-1"
-                  />
-                </div>
+
+                {wallStyleSaluran === "PERSEGI" ? (
+                  <div>
+                    <label className="block text-[11px] font-medium text-muted-foreground">
+                      Tebal Dinding Saluran tw (m)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={tDindingSaluran}
+                      onChange={(e) => setTDindingSaluran(parseFloat(e.target.value) || 0)}
+                      className="num h-8 w-full rounded-md border border-input bg-card px-2 text-xs text-foreground mt-1"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-[11px] font-medium text-muted-foreground">
+                        Tebal Bawah Dinding b1 (m)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={tDindingBawahSaluran}
+                        onChange={(e) => setTDindingBawahSaluran(parseFloat(e.target.value) || 0)}
+                        className="num h-8 w-full rounded-md border border-input bg-card px-2 text-xs text-foreground mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-muted-foreground">
+                        Tebal Atas Dinding b2 (m)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={tDindingAtasSaluran}
+                        onChange={(e) => setTDindingAtasSaluran(parseFloat(e.target.value) || 0)}
+                        className="num h-8 w-full rounded-md border border-input bg-card px-2 text-xs text-foreground mt-1"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
+
+              {wallStyleSaluran !== "PERSEGI" && (
+                <div className="flex items-center gap-2 rounded-md bg-muted/50 p-2 text-xs">
+                  <input
+                    type="checkbox"
+                    id="mirrorRightWallCheck"
+                    checked={mirrorRightWall}
+                    onChange={(e) => setMirrorRightWall(e.target.checked)}
+                    className="h-4 w-4 rounded border-input text-primary"
+                  />
+                  <label htmlFor="mirrorRightWallCheck" className="text-[11px] font-medium text-foreground cursor-pointer select-none">
+                    🪞 Cerminkan dinding kanan saluran secara otomatis (Mirror simetris)
+                  </label>
+                </div>
+              )}
             </div>
           )}
         </div>

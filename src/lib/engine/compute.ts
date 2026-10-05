@@ -15,9 +15,13 @@ export function componentProps(c: Component, L: number, B: number): CompResult {
     case "TRAPESIUM": // simetris, b1 dasar, b2 atas
       A = ((b1 + b2) / 2) * h; xl = b1 / 2;
       zl = b1 + b2 > 0 ? (h * (b1 + 2 * b2)) / (P.PEMBAGI_TITIK_BERAT_SEGITIGA * (b1 + b2)) : 0; break;
-    case "TRAPESIUM_LERENG_HILIR": // sisi tegak di kiri (hulu), lereng miring di hilir (profil bendung)
+    case "TRAPESIUM_LERENG_HILIR": // sisi tegak di kiri (hulu), lereng miring di hilir (profil bendung / dinding kiri lereng dalam)
       A = ((b1 + b2) / 2) * h;
       xl = b1 + b2 > 0 ? (b1 * b1 + b1 * b2 + b2 * b2) / (P.PEMBAGI_TITIK_BERAT_SEGITIGA * (b1 + b2)) : 0;
+      zl = b1 + b2 > 0 ? (h * (b1 + 2 * b2)) / (P.PEMBAGI_TITIK_BERAT_SEGITIGA * (b1 + b2)) : 0; break;
+    case "TRAPESIUM_LERENG_HULU": // sisi tegak di kanan (hilir), lereng miring di hulu (cermin lereng dinding saluran)
+      A = ((b1 + b2) / 2) * h;
+      xl = b1 + b2 > 0 ? b1 - (b1 * b1 + b1 * b2 + b2 * b2) / (P.PEMBAGI_TITIK_BERAT_SEGITIGA * (b1 + b2)) : 0;
       zl = b1 + b2 > 0 ? (h * (b1 + 2 * b2)) / (P.PEMBAGI_TITIK_BERAT_SEGITIGA * (b1 + b2)) : 0; break;
     case "SEGITIGA_KANAN": // sisi tegak di kiri (hulu)
       A = P.FAKTOR_SEGITIGA * b1 * h; xl = b1 / P.PEMBAGI_TITIK_BERAT_SEGITIGA; zl = h / P.PEMBAGI_TITIK_BERAT_SEGITIGA; break;

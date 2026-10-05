@@ -82,6 +82,13 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
           [x0 + b2, z0 + h],
           [x0, z0 + h],
         ];
+      case "TRAPESIUM_LERENG_HULU":
+        return [
+          [x0, z0],
+          [x0 + b1, z0],
+          [x0 + b1, z0 + h],
+          [x0 + b1 - b2, z0 + h],
+        ];
       case "SEGITIGA_KANAN":
         return [
           [x0, z0],
@@ -100,6 +107,60 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
   const pts = polys.flat() as number[][];
   const hu = a.wl.hu;
   const hd = a.wl.hd;
+  const isSaluran = p.type === "SLN" || p.type === "TLG";
+  const isDinding = p.type === "DND";
+  const isBendung = p.type === "BND" || p.type === "BLK";
+
+  // Channel (SLN / TLG) geometry identification
+  const leftWall = a.comps.find(
+    (c) => c.h > 0.2 && (c.x0 < a.B * 0.48 || c.name.toLowerCase().includes("kiri"))
+  ) ?? (a.comps.length >= 2 ? a.comps[1] : undefined);
+
+  const rightWall = a.comps.find(
+    (c) => c.h > 0.2 && (c.x0 + c.b1 > a.B * 0.52 || c.name.toLowerCase().includes("kanan"))
+  ) ?? (a.comps.length >= 3 ? a.comps[2] : undefined);
+
+  const baseComp = a.comps.find(
+    (c) => c.z0 === 0 && (c.b1 >= a.B * 0.5 || c.name.toLowerCase().includes("dasar") || c.name.toLowerCase().includes("lining"))
+  );
+  const zBed = baseComp ? baseComp.h : Math.min(...a.comps.map((c) => c.z0), 0);
+  const hWaterSaluran = hu > 0 ? hu : (p.extra?.water > 0 ? p.extra.water : 0);
+  const zWaterSaluran = zBed + hWaterSaluran;
+
+  const getLeftInnerX = (z: number) => {
+    if (!leftWall) return 0;
+    const { x0, b1, b2, h, shape, z0 } = leftWall;
+    const relZ = Math.min(Math.max(z - z0, 0), h);
+    if (shape === "TRAPESIUM_LERENG_HILIR") {
+      return h > 0 ? x0 + b1 - ((b1 - b2) * relZ) / h : x0 + b1;
+    }
+    if (shape === "TRAPESIUM_LERENG_HULU") {
+      return x0 + b1;
+    }
+    if (shape === "TRAPESIUM") {
+      const o = (b1 - b2) / 2;
+      return h > 0 ? x0 + b1 - (o * relZ) / h : x0 + b1;
+    }
+    return x0 + b1;
+  };
+
+  const getRightInnerX = (z: number) => {
+    if (!rightWall) return a.B;
+    const { x0, b1, b2, h, shape, z0 } = rightWall;
+    const relZ = Math.min(Math.max(z - z0, 0), h);
+    if (shape === "TRAPESIUM_LERENG_HULU") {
+      return h > 0 ? x0 + ((b1 - b2) * relZ) / h : x0;
+    }
+    if (shape === "TRAPESIUM_LERENG_HILIR") {
+      return x0;
+    }
+    if (shape === "TRAPESIUM") {
+      const o = (b1 - b2) / 2;
+      return h > 0 ? x0 + (o * relZ) / h : x0;
+    }
+    return x0;
+  };
+
   const dCutUp = p.seepage?.enabled ? p.seepage.dCutoffUp : 0;
   const dCutDown = p.seepage?.enabled ? p.seepage.dCutoffDown : 0;
   const lApronUp = p.seepage?.enabled ? (p.seepage.lApronUp ?? 0) : 0;
@@ -108,11 +169,17 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
 
   const minX = Math.min(0, -lApronUp, ...pts.map((q) => q[0]!));
   const maxX = Math.max(a.B, a.B + lApronDown, ...pts.map((q) => q[0]!), 1);
-  const maxZ = Math.max(...pts.map((q) => q[1]!), hu, 1);
+  const maxZ = Math.max(
+    ...pts.map((q) => q[1]!),
+    isSaluran ? zWaterSaluran : hu,
+    isDinding ? Math.max(p.Hsoil ?? 0, hd, hu) : 0,
+    1
+  );
   const spanX = maxX - minX;
 
-  // Extra padding if annotations are turned on to prevent clipping text
-  const pad = annotate ? 2.4 : 1.8;
+  // Extra padding adapts to structure type:
+  // Saluran doesn't need huge external padding, focusing cleanly on the canal profile
+  const pad = isSaluran ? (annotate ? 0.9 : 0.5) : isDinding ? (annotate ? 1.8 : 1.3) : (annotate ? 2.4 : 1.8);
   const W = svgWidth;
   const H = svgHeight;
   const topReserve = annotate ? 45 : 30;
@@ -153,6 +220,9 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
         </pattern>
         <pattern id="apron-hatch" width="6" height="6" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
           <line x1="0" y1="0" x2="0" y2="6" stroke="oklch(0.5 0.04 245 / 0.3)" strokeWidth="0.8" />
+        </pattern>
+        <pattern id="soil-backfill-hatch" width="10" height="10" patternTransform="rotate(30 0 0)" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="10" stroke="oklch(0.65 0.08 70 / 0.35)" strokeWidth="1.2" />
         </pattern>
         <linearGradient id="water-hulu-grad-ann" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="oklch(0.68 0.14 230 / 0.55)" />
@@ -203,93 +273,284 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
         </g>
       )}
 
-      {/* Water body hulu (upstream) */}
-      {a.act.hu && hu > 0 && (
+      {/* 1. Saluran / Talang: Air berada di DALAM penampang saluran antara dinding kiri & kanan */}
+      {isSaluran && hWaterSaluran > 0 && (
         <g>
-          <rect x={X(-pad - (lApronUp > 0 ? lApronUp : 0))} y={Z(hu)} width={(pad + (lApronUp > 0 ? lApronUp : 0)) * s} height={hu * s} fill="url(#water-hulu-grad-ann)" />
-          <line
-            x1={X(-pad - (lApronUp > 0 ? lApronUp : 0))}
-            x2={X(0)}
-            y1={Z(hu)}
-            y2={Z(hu)}
-            stroke="oklch(0.55 0.16 230)"
-            strokeWidth={1.5}
-          />
-          {/* Water level symbol triangle */}
+          {/* Water body polygon inside the canal lining */}
           <polygon
-            points={`${X(-pad / 2)},${Z(hu)} ${X(-pad / 2) - 5},${Z(hu) - 7} ${X(-pad / 2) + 5},${Z(hu) - 7}`}
-            fill="oklch(0.55 0.16 230)"
+            points={`
+              ${X(getLeftInnerX(zBed))},${Z(zBed)}
+              ${X(getRightInnerX(zBed))},${Z(zBed)}
+              ${X(getRightInnerX(zWaterSaluran))},${Z(zWaterSaluran)}
+              ${X(getLeftInnerX(zWaterSaluran))},${Z(zWaterSaluran)}
+            `}
+            fill="url(#water-hulu-grad-ann)"
           />
-          <text x={X(-pad / 2) + 8} y={Z(hu) - 4} className="fill-primary font-mono text-[10px] font-bold">
-            M.A Hulu (hᵤ = {fmt(hu)} m)
-          </text>
-          {annotate && (
-            /* Dimension arrow for hu */
-            <g className="text-sky-600 dark:text-sky-400">
-              <line
-                x1={X(-pad * 0.8)}
-                y1={Z(0)}
-                x2={X(-pad * 0.8)}
-                y2={Z(hu)}
-                stroke="currentColor"
-                strokeWidth={1}
-                markerStart="url(#dim-arrow-blue-start)"
-                markerEnd="url(#dim-arrow-blue)"
-              />
-              <text
-                x={X(-pad * 0.8) - 5}
-                y={(Z(0) + Z(hu)) / 2 + 3}
-                textAnchor="end"
-                className="fill-sky-700 dark:fill-sky-300 font-mono text-[9px] font-medium"
-              >
-                hᵤ={fmt(hu)}
-              </text>
-            </g>
-          )}
+          {/* Water surface line */}
+          <line
+            x1={X(getLeftInnerX(zWaterSaluran))}
+            x2={X(getRightInnerX(zWaterSaluran))}
+            y1={Z(zWaterSaluran)}
+            y2={Z(zWaterSaluran)}
+            stroke="oklch(0.55 0.16 230)"
+            strokeWidth={1.8}
+          />
+          {/* Triangle symbol at center of water surface */}
+          {(() => {
+            const xMid = (getLeftInnerX(zWaterSaluran) + getRightInnerX(zWaterSaluran)) / 2;
+            const waterLabel = p.hydraulics.method === "MANNING"
+              ? `M.A Saluran (yₙ = ${fmt(hWaterSaluran)} m)`
+              : p.type === "TLG"
+              ? `M.A Talang (h = ${fmt(hWaterSaluran)} m)`
+              : `M.A Saluran (h = ${fmt(hWaterSaluran)} m)`;
+            const xDim = getLeftInnerX(zBed) + (getRightInnerX(zBed) - getLeftInnerX(zBed)) * 0.28;
+
+            return (
+              <g>
+                <polygon
+                  points={`${X(xMid)},${Z(zWaterSaluran)} ${X(xMid) - 5},${Z(zWaterSaluran) - 7} ${X(xMid) + 5},${Z(zWaterSaluran) - 7}`}
+                  fill="oklch(0.55 0.16 230)"
+                />
+                <text
+                  x={X(xMid)}
+                  y={Z(zWaterSaluran) - 9}
+                  textAnchor="middle"
+                  className="fill-primary font-mono text-[9.5px] font-bold"
+                >
+                  {waterLabel}
+                </text>
+                {annotate && (
+                  <g className="text-sky-600 dark:text-sky-400">
+                    <line
+                      x1={X(xDim)}
+                      y1={Z(zBed)}
+                      x2={X(xDim)}
+                      y2={Z(zWaterSaluran)}
+                      stroke="currentColor"
+                      strokeWidth={1}
+                      markerStart="url(#dim-arrow-blue-start)"
+                      markerEnd="url(#dim-arrow-blue)"
+                    />
+                    <text
+                      x={X(xDim) - 4}
+                      y={(Z(zBed) + Z(zWaterSaluran)) / 2 + 3}
+                      textAnchor="end"
+                      className="fill-sky-700 dark:fill-sky-300 font-mono text-[8.5px] font-bold"
+                    >
+                      h={fmt(hWaterSaluran)}m
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })()}
         </g>
       )}
 
-      {/* Water body hilir (downstream) */}
-      {a.act.hd && hd > 0 && (
+      {/* 2. Dinding Penahan / Talud: Timbunan tanah belakang & muka air depan/saluran */}
+      {isDinding && (
         <g>
-          <rect
-            x={X(a.B)}
-            y={Z(hd)}
-            width={(maxX + pad - a.B + (lApronDown > 0 ? lApronDown : 0)) * s}
-            height={hd * s}
-            fill="url(#water-hilir-grad-ann)"
-          />
-          <line x1={X(a.B)} x2={W - 10} y1={Z(hd)} y2={Z(hd)} stroke="oklch(0.55 0.16 230)" strokeWidth={1.5} />
-          <polygon
-            points={`${X(a.B + 0.8)},${Z(hd)} ${X(a.B + 0.8) - 5},${Z(hd) - 7} ${X(a.B + 0.8) + 5},${Z(hd) - 7}`}
-            fill="oklch(0.55 0.16 230)"
-          />
-          <text x={X(a.B + 0.8) + 8} y={Z(hd) - 4} className="fill-primary font-mono text-[10px] font-bold">
-            M.A Hilir (h_d = {fmt(hd)} m)
-          </text>
-          {annotate && (
-            <g className="text-sky-600 dark:text-sky-400">
-              <line
-                x1={X(a.B + 0.5)}
-                y1={Z(0)}
-                x2={X(a.B + 0.5)}
-                y2={Z(hd)}
-                stroke="currentColor"
-                strokeWidth={1}
-                markerStart="url(#dim-arrow-blue-start)"
-                markerEnd="url(#dim-arrow-blue)"
-              />
-              <text
-                x={X(a.B + 0.5) + 6}
-                y={(Z(0) + Z(hd)) / 2 + 3}
-                textAnchor="start"
-                className="fill-sky-700 dark:fill-sky-300 font-mono text-[9px] font-medium"
-              >
-                h_d={fmt(hd)}
-              </text>
-            </g>
-          )}
+          {/* Tanah timbunan di belakang dinding (heel side) */}
+          {p.Hsoil > 0 && (() => {
+            const stemComp = a.comps.find((c) => c.h > 0.5) || a.comps[1] || a.comps[0];
+            const xStem = stemComp ? stemComp.x0 : 0.4 * a.B;
+            const Hsoil = p.Hsoil;
+            const hwSoil = p.earth?.hWaterSoil ?? 0;
+            return (
+              <g>
+                <rect
+                  x={X(-pad)}
+                  y={Z(Hsoil)}
+                  width={(pad + xStem) * s}
+                  height={Hsoil * s}
+                  fill="url(#soil-backfill-hatch)"
+                  stroke="oklch(0.55 0.08 70 / 0.5)"
+                  strokeDasharray="4 2"
+                  strokeWidth={0.8}
+                />
+                <text
+                  x={X(-pad / 2)}
+                  y={Z(Hsoil) - 6}
+                  textAnchor="middle"
+                  className="fill-amber-800 dark:fill-amber-300 font-mono text-[9px] font-semibold"
+                >
+                  Timbunan Tanah (H={fmt(Hsoil)}m)
+                </text>
+                {/* Muka air tanah di timbunan */}
+                {hwSoil > 0 && (
+                  <g>
+                    <line
+                      x1={X(-pad)}
+                      x2={X(xStem)}
+                      y1={Z(hwSoil)}
+                      y2={Z(hwSoil)}
+                      stroke="oklch(0.55 0.16 230)"
+                      strokeWidth={1.2}
+                      strokeDasharray="3 3"
+                    />
+                    <polygon
+                      points={`${X(-pad / 2)},${Z(hwSoil)} ${X(-pad / 2) - 4},${Z(hwSoil) - 6} ${X(-pad / 2) + 4},${Z(hwSoil) - 6}`}
+                      fill="oklch(0.55 0.16 230)"
+                    />
+                    <text
+                      x={X(-pad / 2)}
+                      y={Z(hwSoil) - 7}
+                      textAnchor="middle"
+                      className="fill-sky-700 dark:fill-sky-300 font-mono text-[8.5px] font-medium"
+                    >
+                      M.A Pori Tanah (hw={fmt(hwSoil)}m)
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })()}
+
+          {/* Air di depan dinding / kaki toe */}
+          {(hd > 0 || hu > 0) && (() => {
+            const hDepan = hd > 0 ? hd : hu;
+            const xStart = a.B;
+            const wWater = (maxX + pad - a.B) * s;
+            const xMid = xStart + (maxX + pad - a.B) / 2;
+            return (
+              <g>
+                <rect x={X(xStart)} y={Z(hDepan)} width={wWater} height={hDepan * s} fill="url(#water-hilir-grad-ann)" />
+                <line x1={X(xStart)} x2={W - 10} y1={Z(hDepan)} y2={Z(hDepan)} stroke="oklch(0.55 0.16 230)" strokeWidth={1.5} />
+                <polygon
+                  points={`${X(xMid)},${Z(hDepan)} ${X(xMid) - 5},${Z(hDepan) - 7} ${X(xMid) + 5},${Z(hDepan) - 7}`}
+                  fill="oklch(0.55 0.16 230)"
+                />
+                <text x={X(xMid)} y={Z(hDepan) - 8} textAnchor="middle" className="fill-primary font-mono text-[9.5px] font-bold">
+                  M.A Depan Dinding (h={fmt(hDepan)}m)
+                </text>
+                {annotate && (
+                  <g className="text-sky-600 dark:text-sky-400">
+                    <line
+                      x1={X(xStart + 0.4)}
+                      y1={Z(0)}
+                      x2={X(xStart + 0.4)}
+                      y2={Z(hDepan)}
+                      stroke="currentColor"
+                      strokeWidth={1}
+                      markerStart="url(#dim-arrow-blue-start)"
+                      markerEnd="url(#dim-arrow-blue)"
+                    />
+                    <text
+                      x={X(xStart + 0.4) + 5}
+                      y={(Z(0) + Z(hDepan)) / 2 + 3}
+                      textAnchor="start"
+                      className="fill-sky-700 dark:fill-sky-300 font-mono text-[9px] font-medium"
+                    >
+                      h={fmt(hDepan)}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })()}
         </g>
+      )}
+
+      {/* 3. Bendung & Blok Gravitasi: Muka air Hulu (x <= 0) & Hilir (x >= B) */}
+      {!isSaluran && !isDinding && (
+        <>
+          {/* Water body hulu (upstream) */}
+          {a.act.hu && hu > 0 && (() => {
+            const xUpStart = -pad - (lApronUp > 0 ? lApronUp : 0);
+            const xUpMid = xUpStart / 2;
+            const xDim = xUpStart + 0.35 * pad;
+            return (
+              <g>
+                <rect x={X(xUpStart)} y={Z(hu)} width={(-xUpStart) * s} height={hu * s} fill="url(#water-hulu-grad-ann)" />
+                <line
+                  x1={X(xUpStart)}
+                  x2={X(0)}
+                  y1={Z(hu)}
+                  y2={Z(hu)}
+                  stroke="oklch(0.55 0.16 230)"
+                  strokeWidth={1.5}
+                />
+                <polygon
+                  points={`${X(xUpMid)},${Z(hu)} ${X(xUpMid) - 5},${Z(hu) - 7} ${X(xUpMid) + 5},${Z(hu) - 7}`}
+                  fill="oklch(0.55 0.16 230)"
+                />
+                <text x={X(xUpMid)} y={Z(hu) - 8} textAnchor="middle" className="fill-primary font-mono text-[9.5px] font-bold">
+                  M.A Hulu (hᵤ = {fmt(hu)} m)
+                </text>
+                {annotate && (
+                  <g className="text-sky-600 dark:text-sky-400">
+                    <line
+                      x1={X(xDim)}
+                      y1={Z(0)}
+                      x2={X(xDim)}
+                      y2={Z(hu)}
+                      stroke="currentColor"
+                      strokeWidth={1}
+                      markerStart="url(#dim-arrow-blue-start)"
+                      markerEnd="url(#dim-arrow-blue)"
+                    />
+                    <text
+                      x={X(xDim) - 5}
+                      y={(Z(0) + Z(hu)) / 2 + 3}
+                      textAnchor="end"
+                      className="fill-sky-700 dark:fill-sky-300 font-mono text-[9px] font-medium"
+                    >
+                      hᵤ={fmt(hu)}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })()}
+
+          {/* Water body hilir (downstream) */}
+          {a.act.hd && hd > 0 && (() => {
+            const xDownEnd = maxX + pad + (lApronDown > 0 ? lApronDown : 0);
+            const xDownMid = a.B + (xDownEnd - a.B) / 2;
+            const xDim = a.B + 0.35 * pad;
+            return (
+              <g>
+                <rect
+                  x={X(a.B)}
+                  y={Z(hd)}
+                  width={(xDownEnd - a.B) * s}
+                  height={hd * s}
+                  fill="url(#water-hilir-grad-ann)"
+                />
+                <line x1={X(a.B)} x2={W - 10} y1={Z(hd)} y2={Z(hd)} stroke="oklch(0.55 0.16 230)" strokeWidth={1.5} />
+                <polygon
+                  points={`${X(xDownMid)},${Z(hd)} ${X(xDownMid) - 5},${Z(hd) - 7} ${X(xDownMid) + 5},${Z(hd) - 7}`}
+                  fill="oklch(0.55 0.16 230)"
+                />
+                <text x={X(xDownMid)} y={Z(hd) - 8} textAnchor="middle" className="fill-primary font-mono text-[9.5px] font-bold">
+                  M.A Hilir (h_d = {fmt(hd)} m)
+                </text>
+                {annotate && (
+                  <g className="text-sky-600 dark:text-sky-400">
+                    <line
+                      x1={X(xDim)}
+                      y1={Z(0)}
+                      x2={X(xDim)}
+                      y2={Z(hd)}
+                      stroke="currentColor"
+                      strokeWidth={1}
+                      markerStart="url(#dim-arrow-blue-start)"
+                      markerEnd="url(#dim-arrow-blue)"
+                    />
+                    <text
+                      x={X(xDim) + 6}
+                      y={(Z(0) + Z(hd)) / 2 + 3}
+                      textAnchor="start"
+                      className="fill-sky-700 dark:fill-sky-300 font-mono text-[9px] font-medium"
+                    >
+                      h_d={fmt(hd)}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })()}
+        </>
       )}
 
       {/* Foundation interface line (z = 0) */}

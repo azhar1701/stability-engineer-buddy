@@ -53,6 +53,13 @@ export function ComparativeSketch({
             [x0 + b2, z0 + h],
             [x0, z0 + h],
           ];
+        case "TRAPESIUM_LERENG_HULU":
+          return [
+            [x0, z0],
+            [x0 + b1, z0],
+            [x0 + b1, z0 + h],
+            [x0 + b1 - b2, z0 + h],
+          ];
         case "SEGITIGA_KANAN":
           return [
             [x0, z0],

@@ -124,6 +124,18 @@ describe("mesin stabilitas — sampel UAT bendung", () => {
     expect(comp.zc).toBeCloseTo(1.2, 4);
   });
 
+  it("titik berat trapesium lereng hulu (sisi miring hulu, tegak hilir / mirror dinding saluran)", () => {
+    const comp = componentProps(
+      { id: "test2", name: "Dinding Kanan Saluran", shape: "TRAPESIUM_LERENG_HULU", b1: 4, b2: 1, h: 3, x0: 0, z0: 0, material: "Beton bertulang" },
+      1,
+      6
+    );
+    expect(comp.A).toBeCloseTo(0.5 * (4 + 1) * 3); // 7.5 m²
+    // xl = b1 - 1.4 = 4 - 1.4 = 2.6 m
+    expect(comp.xc).toBeCloseTo(2.6, 4);
+    expect(comp.zc).toBeCloseTo(1.2, 4);
+  });
+
   it("lengan momen surcharge tanah lateral terhitung lebih tinggi dari H/3", () => {
     const pDnd = {
       ...p,

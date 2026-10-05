@@ -1,6 +1,6 @@
 import type { CaseClass, ForceKey, Switch, TypeId } from "./master";
 
-export type Shape = "PERSEGI" | "TRAPESIUM" | "TRAPESIUM_LERENG_HILIR" | "SEGITIGA_KANAN" | "SEGITIGA_KIRI";
+export type Shape = "PERSEGI" | "TRAPESIUM" | "TRAPESIUM_LERENG_HILIR" | "TRAPESIUM_LERENG_HULU" | "SEGITIGA_KANAN" | "SEGITIGA_KIRI";
 export interface Component {
   id: string; name: string; shape: Shape;
   b1: number; b2: number; h: number; x0: number; z0: number; material: string; gammaCustom?: number;
