@@ -501,21 +501,6 @@ function ReportPage() {
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground border-t pt-2 print:border-slate-300 print:text-slate-700">
               Hasil perhitungan berbasis rumus hidraulika dan mekanika tanah standar KP-02 Irigasi dan SNI 8460:2017. Laporan ini merupakan nota desain teknis awal dan wajib ditinjau serta disahkan oleh Tenaga Ahli Teknik Sumber Daya Air / Geoteknik (SKA/SKK IPU/IPT) sebelum tahap pelaksanaan konstruksi fisik di lapangan.
             </p>
-
-            <div className="mt-8 hidden print:grid grid-cols-2 gap-8 text-center text-xs">
-              <div className="border-t border-black pt-2">
-                <p className="font-semibold">Diverifikasi & Disetujui Oleh:</p>
-                <div className="h-16" />
-                <p className="font-bold underline">{p.engineer || "(Nama Tenaga Ahli)"}</p>
-                <p className="text-[10px] text-slate-600">Ahli Sumber Daya Air / Geoteknik</p>
-              </div>
-              <div className="border-t border-black pt-2">
-                <p className="font-semibold">Mengetahui / Pengguna Jasa:</p>
-                <div className="h-16" />
-                <p className="font-bold underline">PPK / Instansi Pemberi Tugas</p>
-                <p className="text-[10px] text-slate-600">NIP. ........................................</p>
-              </div>
-            </div>
           </Section>
         </div>
       )}
