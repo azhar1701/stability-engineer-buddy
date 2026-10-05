@@ -99,4 +99,49 @@ describe("Recommendation Solvers (applyRec)", () => {
     const infoSolution = solveRecommendation(infoRec, p);
     expect(infoSolution).toBeNull();
   });
+
+  it("handles the user screenshot scenario: Lane Cw = 2.6 with Pasir sedang", () => {
+    const p = uatSample();
+    p.B = 6.0;
+    p.components[0].b1 = 6.0;
+    p.seepage = {
+      enabled: true,
+      soilType: "PASIR_SEDANG",
+      dCutoffUp: 1.0,
+      dCutoffDown: 1.5,
+      lApronUp: 0,
+      lApronDown: 0,
+    };
+    // deltaH = 2.6m => initial Cw = 2.69 (< 6.0, piping failure)
+    p.hydraulics.hu = 3.4;
+    p.hydraulics.hd = 0.8;
+
+    const res = analyze(p);
+    expect(res.seepage.laneOk).toBe(false);
+    expect(res.seepage.Cw).toBeLessThan(6.0);
+
+    const solvedCutoff = solveAddCutoff(p);
+    expect(solvedCutoff.converged).toBe(true);
+    expect(solvedCutoff.resultAfter.seepage.laneOk).toBe(true);
+    expect(solvedCutoff.resultAfter.seepage.Cw).toBeGreaterThanOrEqual(6.0);
+    expect(solvedCutoff.delta.dCutoffUp.to).toBeGreaterThan(1.0);
+    expect(solvedCutoff.delta.dCutoffDown.to).toBeGreaterThan(1.5);
+    expect(solvedCutoff.entry).toBeDefined();
+  });
+
+  it("never returns a zero-change delta or patch when a solver cannot converge", () => {
+    const p = uatSample();
+    // High water with extreme uplift that cannot be solved by base widening alone
+    p.hydraulics.hu = 4.5;
+    p.hydraulics.hd = 0.2;
+    p.B = 6.0;
+    p.components[0].b1 = 6.0;
+
+    const solvedB = solveWiderBase(p);
+    if (!solvedB.converged) {
+      expect(Object.keys(solvedB.delta).length).toBe(0);
+      expect(Object.keys(solvedB.patch).length).toBe(0);
+      expect(solvedB.entry).toBeUndefined();
+    }
+  });
 });

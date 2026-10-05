@@ -14,17 +14,26 @@ function RecPage() {
   const { project: p, result: a, update } = useProject();
   const recs = recommend(a);
 
-  const appliedList = p.appliedRecs ?? [];
+  // Filter out any stale 0-delta entries where nothing actually changed
+  const isMeaningfulDelta = (entry: AppliedRecEntry) =>
+    entry.delta &&
+    Object.values(entry.delta).some((d) => Math.abs(d.to - d.from) > 0.001);
+
+  const appliedList = (p.appliedRecs ?? []).filter(isMeaningfulDelta);
   const activeApplied = appliedList.filter((r) => r.status === "APPLIED");
 
   const handleApply = (entry: AppliedRecEntry) => {
+    // Safety: only apply if delta is meaningful
+    if (!isMeaningfulDelta(entry)) return;
+
     update((current) => {
-      const prevApplied = current.appliedRecs ?? [];
-      const filtered = prevApplied.filter((r) => r.id !== entry.id);
+      const prevApplied = (current.appliedRecs ?? []).filter(
+        (r) => r.id !== entry.id && isMeaningfulDelta(r)
+      );
       return {
         ...current,
         ...entry.patch,
-        appliedRecs: [...filtered, entry],
+        appliedRecs: [...prevApplied, entry],
         updatedAt: Date.now(),
       };
     });
@@ -137,12 +146,13 @@ function RecPage() {
       <Section title={`${recs.length} Butir Rekomendasi Teknis`}>
         <div className="space-y-3">
           {recs.map((r, i) => {
-            const matchedEntry = activeApplied.find((entry) =>
-              r.title.toLowerCase().includes("geser") && entry.solverType === "WIDEN_B" ||
-              r.title.toLowerCase().includes("guling") && entry.solverType === "WIDEN_B" ||
-              r.title.toLowerCase().includes("piping") && entry.solverType === "ADD_CUTOFF" ||
-              r.title.toLowerCase().includes("daya dukung") && (entry.solverType === "WIDEN_B" || entry.solverType === "DEEPER_DF")
-            );
+            const matchedEntry = activeApplied.find((entry) => {
+              const t = r.title.toLowerCase();
+              if (t.includes("geser") || t.includes("guling")) return entry.solverType === "WIDEN_B";
+              if (t.includes("piping") || t.includes("rembesan")) return entry.solverType === "ADD_CUTOFF" || entry.solverType === "EXTEND_APRON";
+              if (t.includes("daya dukung")) return entry.solverType === "WIDEN_B" || entry.solverType === "DEEPER_DF";
+              return false;
+            });
 
             return (
               <RecApplyCard

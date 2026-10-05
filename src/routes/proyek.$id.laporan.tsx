@@ -476,7 +476,7 @@ function ReportPage() {
       {included.recs && (
         <div className="report-section mb-6">
           <Section title="8. Rekomendasi & Catatan Rekayasa">
-            {p.appliedRecs && p.appliedRecs.filter((r) => r.status === "APPLIED").length > 0 && (
+            {p.appliedRecs && p.appliedRecs.filter((r) => r.status === "APPLIED" && r.delta && Object.values(r.delta).some((d) => Math.abs(d.to - d.from) > 0.001)).length > 0 && (
               <div className="mb-4 rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3 text-xs print:border-slate-300 print:bg-slate-50">
                 <div className="font-semibold text-emerald-800 dark:text-emerald-300 print:text-black mb-2">
                   Tindakan Rekomendasi yang Telah Diterapkan ke Pemodelan:

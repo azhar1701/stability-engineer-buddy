@@ -14,7 +14,7 @@ export interface ApplyResult {
   delta: Record<string, AppliedRecDelta>;
   summary: string;
   warningMsg?: string;
-  entry: AppliedRecEntry;
+  entry?: AppliedRecEntry;
 }
 
 /**
@@ -81,14 +81,25 @@ export function solveWiderBase(
       addedWidth = deltaB;
 
       // If kern condition is also satisfied, stop immediately for optimal design
-      if (allKernOk) {
-        break;
-      }
-      // If we don't have kern yet, continue up to 20 more iterations to see if kern can be achieved
-      if (i > 30) {
+      if (allKernOk || i > 40) {
         break;
       }
     }
+  }
+
+  if (!converged || addedWidth <= 0) {
+    return {
+      solverType: "WIDEN_B",
+      converged: false,
+      projectBefore: p,
+      projectAfter: p,
+      resultBefore,
+      resultAfter: resultBefore,
+      patch: {},
+      delta: {},
+      summary: `Pencarian konvergensi pelebaran dasar B hingga +${(maxIterations * step).toFixed(2)} m belum memenuhi seluruh kriteria keamanan gabungan (geser, guling, daya dukung). Diperlukan kombinasi perbaikan tanah, reduksi gaya angkat (uplift) melalui tirai rembesan, atau modifikasi bentuk struktur.`,
+      warningMsg: "Solusi otomatis tidak konvergen dengan pelebaran dasar saja.",
+    };
   }
 
   const delta: Record<string, AppliedRecDelta> = {
@@ -115,9 +126,7 @@ export function solveWiderBase(
     components: pBest.components,
   };
 
-  const summary = converged
-    ? `Lebar dasar B ditingkatkan dari ${initialB.toFixed(2)} m menjadi ${pBest.B.toFixed(2)} m (+${addedWidth.toFixed(2)} m) untuk memulihkan angka keamanan geser, guling, dan daya dukung tanah.`
-    : `Pencarian konvergensi lebar dasar mencapai batas +${(maxIterations * step).toFixed(2)} m tanpa memenuhi seluruh kriteria keamanan. Diperlukan tinjauan perbaikan tanah atau struktur tambahan.`;
+  const summary = `Lebar dasar B ditingkatkan dari ${initialB.toFixed(2)} m menjadi ${pBest.B.toFixed(2)} m (+${addedWidth.toFixed(2)} m) untuk memulihkan angka keamanan geser, guling, dan daya dukung tanah.`;
 
   const entry: AppliedRecEntry = {
     id: uid(),
@@ -132,7 +141,7 @@ export function solveWiderBase(
 
   return {
     solverType: "WIDEN_B",
-    converged,
+    converged: true,
     projectBefore: p,
     projectAfter: pBest,
     resultBefore,
@@ -140,9 +149,6 @@ export function solveWiderBase(
     patch,
     delta,
     summary,
-    warningMsg: converged
-      ? undefined
-      : "Solusi belum mencapai FS izin dalam rentang iterasi maksimum.",
     entry,
   };
 }
@@ -150,12 +156,13 @@ export function solveWiderBase(
 /**
  * Solve additional cutoff depth to prevent piping & fulfill Lane / Bligh creep criteria.
  * Increases dCutoffUp and dCutoffDown by 0.1m steps.
+ * Primary criterion: Lane's Weighted Creep Ratio (KP-02 Subbab 5.4).
  */
 export function solveAddCutoff(
   p: Project,
   opts?: { maxIterations?: number; step?: number }
 ): ApplyResult {
-  const maxIterations = opts?.maxIterations ?? 100;
+  const maxIterations = opts?.maxIterations ?? 150;
   const step = opts?.step ?? 0.1;
 
   const resultBefore = analyze(p);
@@ -170,6 +177,9 @@ export function solveAddCutoff(
   for (let i = 1; i <= maxIterations; i++) {
     const deltaD = +(i * step).toFixed(2);
     const testProject = cloneProject(p);
+    const tryUp = +(initialUp + deltaD * 0.55).toFixed(2);
+    const tryDown = +(initialDown + deltaD * 0.45).toFixed(2);
+
     testProject.seepage = {
       ...(p.seepage ?? {
         soilType: "PASIR_SEDANG",
@@ -177,18 +187,45 @@ export function solveAddCutoff(
         lApronDown: 0,
       }),
       enabled: true,
-      dCutoffUp: +(initialUp + deltaD * 0.6).toFixed(2),
-      dCutoffDown: +(initialDown + deltaD * 0.4).toFixed(2),
+      dCutoffUp: tryUp,
+      dCutoffDown: tryDown,
     };
 
     const testResult = analyze(testProject);
-    if (testResult.seepage.laneOk && testResult.seepage.blighOk) {
-      converged = true;
-      pBest = testProject;
-      bestResult = testResult;
-      addedDepth = deltaD;
-      break;
+
+    // Primary condition: Lane Cw >= CwMin (Standard KP-02)
+    if (testResult.seepage.laneOk) {
+      // If Bligh is also ok or we have added sufficient depth (>= 3m), stop
+      if (testResult.seepage.blighOk || deltaD >= 3.0 || i >= 80) {
+        converged = true;
+        pBest = testProject;
+        bestResult = testResult;
+        addedDepth = deltaD;
+        break;
+      }
+      // Store candidate
+      if (!converged) {
+        converged = true;
+        pBest = testProject;
+        bestResult = testResult;
+        addedDepth = deltaD;
+      }
     }
+  }
+
+  if (!converged || addedDepth <= 0) {
+    return {
+      solverType: "ADD_CUTOFF",
+      converged: false,
+      projectBefore: p,
+      projectAfter: p,
+      resultBefore,
+      resultAfter: resultBefore,
+      patch: {},
+      delta: {},
+      summary: `Pencarian kedalaman cutoff hingga +${(maxIterations * step).toFixed(2)} m belum memenuhi kriteria rembesan Lane. Diperlukan penambahan lantai lindung (apron) hilir atau perbaikan fondasi tanah.`,
+      warningMsg: "Panjang rayapan rembesan belum memenuhi syarat Lane.",
+    };
   }
 
   const newUp = pBest.seepage?.dCutoffUp ?? initialUp;
@@ -213,9 +250,7 @@ export function solveAddCutoff(
     seepage: pBest.seepage,
   };
 
-  const summary = converged
-    ? `Kedalaman cutoff hulu ditambah menjadi ${newUp.toFixed(2)} m dan hilir menjadi ${newDown.toFixed(2)} m (total +${addedDepth.toFixed(2)} m) sehingga angka Lane Cw (${bestResult.seepage.Cw.toFixed(1)} ≥ ${bestResult.seepage.CwMin}) aman terhadap piping.`
-    : `Pencarian kedalaman cutoff mencapai batas tanpa memenuhi angka Lane Cw yang diisyaratkan.`;
+  const summary = `Kedalaman cutoff hulu ditambah menjadi ${newUp.toFixed(2)} m dan hilir menjadi ${newDown.toFixed(2)} m (total +${addedDepth.toFixed(2)} m) sehingga angka Lane Cw (${bestResult.seepage.Cw.toFixed(1)} ≥ ${bestResult.seepage.CwMin}) aman terhadap bahaya piping.`;
 
   const entry: AppliedRecEntry = {
     id: uid(),
@@ -230,7 +265,7 @@ export function solveAddCutoff(
 
   return {
     solverType: "ADD_CUTOFF",
-    converged,
+    converged: true,
     projectBefore: p,
     projectAfter: pBest,
     resultBefore,
@@ -238,7 +273,6 @@ export function solveAddCutoff(
     patch,
     delta,
     summary,
-    warningMsg: converged ? undefined : "Panjang jalur rembesan belum memenuhi syarat Lane.",
     entry,
   };
 }
@@ -276,13 +310,28 @@ export function solveExtendApron(
     };
 
     const testResult = analyze(testProject);
-    if (testResult.seepage.laneOk && testResult.seepage.blighOk) {
+    if (testResult.seepage.laneOk) {
       converged = true;
       pBest = testProject;
       bestResult = testResult;
       addedApron = deltaL;
       break;
     }
+  }
+
+  if (!converged || addedApron <= 0) {
+    return {
+      solverType: "EXTEND_APRON",
+      converged: false,
+      projectBefore: p,
+      projectAfter: p,
+      resultBefore,
+      resultAfter: resultBefore,
+      patch: {},
+      delta: {},
+      summary: `Panjang apron mencapai batas maksimum iterasi tanpa konvergensi rembesan.`,
+      warningMsg: "Apron belum memenuhi syarat rayapan Lane.",
+    };
   }
 
   const newApron = pBest.seepage?.lApronDown ?? initialApron;
@@ -300,9 +349,7 @@ export function solveExtendApron(
     seepage: pBest.seepage,
   };
 
-  const summary = converged
-    ? `Panjang apron hilir diperpanjang dari ${initialApron.toFixed(2)} m menjadi ${newApron.toFixed(2)} m (+${addedApron.toFixed(2)} m) sehingga rasio rembesan aman.`
-    : `Panjang apron mencapai batas maksimum iterasi tanpa konvergensi rembesan.`;
+  const summary = `Panjang apron hilir diperpanjang dari ${initialApron.toFixed(2)} m menjadi ${newApron.toFixed(2)} m (+${addedApron.toFixed(2)} m) sehingga rasio rembesan Lane aman.`;
 
   const entry: AppliedRecEntry = {
     id: uid(),
@@ -317,7 +364,7 @@ export function solveExtendApron(
 
   return {
     solverType: "EXTEND_APRON",
-    converged,
+    converged: true,
     projectBefore: p,
     projectAfter: pBest,
     resultBefore,
@@ -325,7 +372,6 @@ export function solveExtendApron(
     patch,
     delta,
     summary,
-    warningMsg: converged ? undefined : "Apron belum memenuhi syarat rayapan Lane.",
     entry,
   };
 }
@@ -365,6 +411,21 @@ export function solveDeeperDf(
     }
   }
 
+  if (!converged || addedDf <= 0) {
+    return {
+      solverType: "DEEPER_DF",
+      converged: false,
+      projectBefore: p,
+      projectAfter: p,
+      resultBefore,
+      resultAfter: resultBefore,
+      patch: {},
+      delta: {},
+      summary: `Penambahan Df belum mencukupi batas daya dukung izin. Disarankan memperlebar dasar fondasi (B).`,
+      warningMsg: "Df belum mencukupi batas daya dukung.",
+    };
+  }
+
   const delta: Record<string, AppliedRecDelta> = {
     Df: {
       from: initialDf,
@@ -378,9 +439,7 @@ export function solveDeeperDf(
     Df: pBest.Df,
   };
 
-  const summary = converged
-    ? `Kedalaman fondasi Df diperdalam dari ${initialDf.toFixed(2)} m menjadi ${pBest.Df.toFixed(2)} m (+${addedDf.toFixed(2)} m) untuk meningkatkan daya dukung izin Terzaghi.`
-    : `Penambahan Df belum mencukupi batas daya dukung izin. Disarankan memperlebar dasar fondasi (B).`;
+  const summary = `Kedalaman fondasi Df diperdalam dari ${initialDf.toFixed(2)} m menjadi ${pBest.Df.toFixed(2)} m (+${addedDf.toFixed(2)} m) untuk meningkatkan daya dukung izin Terzaghi.`;
 
   const entry: AppliedRecEntry = {
     id: uid(),
@@ -395,7 +454,7 @@ export function solveDeeperDf(
 
   return {
     solverType: "DEEPER_DF",
-    converged,
+    converged: true,
     projectBefore: p,
     projectAfter: pBest,
     resultBefore,
@@ -403,7 +462,6 @@ export function solveDeeperDf(
     patch,
     delta,
     summary,
-    warningMsg: converged ? undefined : "Df belum mencukupi batas daya dukung.",
     entry,
   };
 }
@@ -432,7 +490,6 @@ export function solveRecommendation(rec: Rec, p: Project): ApplyResult | null {
 
   // Bearing capacity exceeded
   if (title.includes("daya dukung terlampaui") || title.includes("daya dukung mendekati")) {
-    // If Terzaghi mode is used, we can try deeper Df or wider base B
     if (p.bearing.mode === "TERZAGHI") {
       const dfTry = solveDeeperDf(p);
       if (dfTry.converged) return dfTry;
