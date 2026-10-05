@@ -214,7 +214,8 @@ export function NewProjectWizard({ isOpen, onClose, onCreate }: WizardProps) {
                   value={form.kecamatan}
                   onChange={(v) => setForm((s) => ({ ...s, kecamatan: v }))}
                   options={Object.keys(KECAMATAN)}
-                  placeholder="Ketik nama kecamatan..."
+                  getBadge={(opt) => KECAMATAN[opt]?.replace(/_/g, " ")}
+                  placeholder="Ketik atau pilih nama kecamatan..."
                   hint="Digunakan untuk pemetaan profil tanah regional Ciamis"
                 />
                 <TextField

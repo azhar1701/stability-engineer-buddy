@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
@@ -115,6 +116,7 @@ export function AutocompleteField({
   options,
   hint,
   placeholder,
+  getBadge,
 }: {
   label: string;
   value: string;
@@ -122,25 +124,184 @@ export function AutocompleteField({
   options: readonly string[];
   hint?: string;
   placeholder?: string;
+  getBadge?: (opt: string) => string | undefined;
 }) {
-  const listId = `list-${label.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()}`;
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState(value);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+
+  // Sync external value updates
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
+
+  // Compute portal dropdown position based on input element rect
+  useLayoutEffect(() => {
+    if (!isOpen || !inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom;
+    const dropHeight = Math.min(240, options.length * 32 + 40);
+    const openUpward = spaceBelow < dropHeight + 8 && rect.top > dropHeight + 8;
+    setDropdownStyle({
+      position: "fixed",
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+      ...(openUpward
+        ? { bottom: viewportHeight - rect.top + 4 }
+        : { top: rect.bottom + 4 }),
+    });
+  }, [isOpen, options.length]);
+
+  // Click outside listener (closes when clicking outside both input container and dropdown portal)
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      const inContainer = containerRef.current?.contains(target);
+      const inDropdown = dropdownRef.current?.contains(target);
+      if (!inContainer && !inDropdown) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = query.trim()
+    ? options.filter((opt) => opt.toLowerCase().includes(query.toLowerCase()))
+    : options;
+
+  const handleSelect = (opt: string) => {
+    onChange(opt);
+    setQuery(opt);
+    setIsOpen(false);
+  };
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setQuery("");
+    onChange("");
+    setIsOpen(true);
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setIsOpen(false);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!isOpen) setIsOpen(true);
+    } else if (e.key === "Enter" && isOpen && filteredOptions.length > 0) {
+      e.preventDefault();
+      handleSelect(filteredOptions[0]!);
+    }
+  };
+
+  const dropdownPortal = isOpen
+    ? createPortal(
+        <div
+          ref={dropdownRef}
+          style={dropdownStyle}
+          className="max-h-60 overflow-y-auto rounded-md border border-border bg-card p-1 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-100"
+        >
+          <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60 mb-1 flex items-center justify-between">
+            <span>Pilihan ({filteredOptions.length})</span>
+            {filteredOptions.length < options.length && (
+              <span className="text-[10px] font-semibold text-primary">Tersaring</span>
+            )}
+          </div>
+          {filteredOptions.length === 0 ? (
+            <div className="p-3 text-center text-xs text-muted-foreground">
+              Tidak ada pilihan yang cocok dengan &quot;{query}&quot;.
+            </div>
+          ) : (
+            filteredOptions.map((opt) => {
+              const isSelected = opt.toLowerCase() === value.trim().toLowerCase();
+              const badge = getBadge ? getBadge(opt) : undefined;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()} // prevent blur before click
+                  onClick={() => handleSelect(opt)}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded px-2.5 py-1.5 text-left text-xs transition-colors",
+                    isSelected
+                      ? "bg-primary/10 font-bold text-primary"
+                      : "text-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className={cn("text-xs", isSelected ? "text-primary font-bold" : "text-transparent")}>✓</span>
+                    <span>{opt}</span>
+                  </span>
+                  {badge && (
+                    <span className="rounded bg-muted/80 px-1.5 py-0.5 text-[9.5px] font-mono text-muted-foreground">
+                      {badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>,
+        document.body
+      )
+    : null;
+
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-foreground/80">{label}</span>
-      <input
-        list={listId}
-        className={inputCls}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder ?? "Ketik atau pilih dari daftar…"}
-      />
-      <datalist id={listId}>
-        {options.map((opt) => (
-          <option key={opt} value={opt} />
-        ))}
-      </datalist>
+    <div ref={containerRef} className="relative block">
+      <label className="mb-1.5 block text-xs font-medium text-foreground/80">{label}</label>
+      <div className="relative flex items-center">
+        <input
+          ref={inputRef}
+          type="text"
+          className={cn(inputCls, "pr-14")}
+          value={query}
+          onFocus={() => setIsOpen(true)}
+          onClick={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
+          onChange={(e) => {
+            const v = e.target.value;
+            setQuery(v);
+            onChange(v);
+            if (!isOpen) setIsOpen(true);
+          }}
+          placeholder={placeholder ?? "Ketik atau pilih dari daftar…"}
+        />
+        <div className="absolute right-1.5 flex items-center gap-1">
+          {query && (
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={handleClear}
+              className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground text-[10px]"
+              title="Hapus pilihan"
+            >
+              ✕
+            </button>
+          )}
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => {
+              setIsOpen((prev) => !prev);
+              inputRef.current?.focus();
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground text-xs transition-colors"
+            title="Tampilkan daftar pilihan"
+          >
+            ▾
+          </button>
+        </div>
+      </div>
+      {dropdownPortal}
       {hint && <span className="mt-1 block text-[11px] leading-tight text-muted-foreground">{hint}</span>}
-    </label>
+    </div>
   );
 }
 

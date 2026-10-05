@@ -39,11 +39,11 @@ function ReportPage() {
   const govCase = a.envelope.slide?.c ?? a.cases.find((c) => c.active) ?? a.cases[0];
 
   // Specific force extractions for governing case
-  const fHydUp = govCase?.forces.find((f) => f.key === "hydroUp");
-  const fHydDown = govCase?.forces.find((f) => f.key === "hydroDown");
-  const fUplift = govCase?.forces.find((f) => f.key === "uplift");
-  const fSoil = govCase?.forces.find((f) => f.key === "soilLat");
-  const fEqH = govCase?.forces.find((f) => f.key === "eqH");
+  const fHydUp = govCase?.forces.find((f) => f.id === "HYDRO_UP");
+  const fHydDown = govCase?.forces.find((f) => f.id === "HYDRO_DOWN");
+  const fUplift = govCase?.forces.find((f) => f.id === "UPLIFT");
+  const fSoil = govCase?.forces.find((f) => f.id === "LAT_SOIL");
+  const fEqH = govCase?.forces.find((f) => f.id === "SEIS_H");
 
   return (
     <div className={cn("text-sm print-container", paperSize === "A4-L" ? "paper-landscape" : "paper-portrait")}>
@@ -342,7 +342,7 @@ function ReportPage() {
                 desc="Gaya Tekanan Hidrostatik Horizontal Hulu & Hilir"
                 result={
                   fHydUp
-                    ? `P_u = ${fmt(fHydUp.H, 1)} kN (arm = ${fmt(fHydUp.z, 2)} m) ; P_d = ${fmt(fHydDown?.H ?? 0, 1)} kN`
+                    ? `P_u = ${fmt(fHydUp.F, 1)} kN (arm = ${fmt(fHydUp.arm, 2)} m) ; P_d = ${fmt(fHydDown?.F ?? 0, 1)} kN`
                     : "—"
                 }
                 standardRef="KP-02 §5.2.1"
@@ -352,7 +352,7 @@ function ReportPage() {
                 desc="Gaya Angkat Uplift (Distribusi Trapesium Dasar Fondasi)"
                 result={
                   fUplift
-                    ? `U = ${fmt(fUplift.V, 1)} kN (x_dari_heel = ${fmt(fUplift.x, 2)} m ; Momen_guling = ${fmt(fUplift.Mo, 1)} kNm)`
+                    ? `U = ${fmt(fUplift.F, 1)} kN (x_dari_heel = ${fmt(fUplift.arm, 2)} m ; Momen_guling = ${fmt(fUplift.Mo, 1)} kNm)`
                     : "Uplift dinonaktifkan"
                 }
                 standardRef="KP-02 §5.2.4"
@@ -364,7 +364,7 @@ function ReportPage() {
               <MathBlock
                 eq="K<sub>a</sub> = tan<sup>2</sup>(45&deg; - &phi;'/2) &emsp;&emsp; P<sub>a</sub> = &frac12; &times; K<sub>a</sub> &times; &gamma; &times; H<sub>soil</sub><sup>2</sup> &times; L"
                 desc="Koefisien Tekanan Tanah Aktif Rankine & Total Gaya Dorong Tanah"
-                result={`Ka = ${fmt(a.K, 3)} ; phi = ${fmt(a.soil.phi, 0)}° ; Pa = ${fmt(fSoil?.H ?? 0, 1)} kN`}
+                result={`Ka = ${fmt(a.K, 3)} ; phi = ${fmt(a.soil.phi, 0)}° ; Pa = ${fmt(fSoil?.F ?? 0, 1)} kN`}
                 standardRef="Rankine / KP-02"
               />
             </FormulaStep>
@@ -375,7 +375,7 @@ function ReportPage() {
                 <MathBlock
                   eq="F<sub>eq,H</sub> = k<sub>h</sub> &times; W &emsp;&emsp; P<sub>Westergaard</sub> = 0.726 &times; k<sub>h</sub> &times; &gamma;<sub>w</sub> &times; h<sub>u</sub><sup>2</sup> &times; L"
                   desc="Gaya Inersia Struktur & Gaya Hidrodinamis Westergaard"
-                  result={`kh = ${fmt(p.seismic.kh, 3)} ; F_eq,H = ${fmt(fEqH?.H ?? 0, 1)} kN`}
+                  result={`kh = ${fmt(p.seismic.kh, 3)} ; F_eq,H = ${fmt(fEqH?.F ?? 0, 1)} kN`}
                   standardRef="KP-02 §7.2"
                 />
               </FormulaStep>

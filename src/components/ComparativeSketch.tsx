@@ -270,7 +270,7 @@ export function ComparativeSketch({
             MATERIAL_COLORS[comp?.material ?? "Beton bertulang"] ??
             MATERIAL_COLORS["Beton bertulang"]!;
           const pathD =
-            poly.map((p, i) => `${i === 0 ? "M" : "L"} ${X(p[0])} ${Z(p[1])}`).join(" ") + " Z";
+            poly.map((p, i) => `${i === 0 ? "M" : "L"} ${X(p[0]!)} ${Z(p[1]!)}`).join(" ") + " Z";
 
           return (
             <path
@@ -444,7 +444,7 @@ export function ComparativeSketch({
         {/* Existing outline (dashed) */}
         {polysB.map((poly, idx) => {
           const pathD =
-            poly.map((p, i) => `${i === 0 ? "M" : "L"} ${X(p[0])} ${Z(p[1])}`).join(" ") + " Z";
+            poly.map((p, i) => `${i === 0 ? "M" : "L"} ${X(p[0]!)} ${Z(p[1]!)}`).join(" ") + " Z";
           return (
             <path
               key={`b-${idx}`}
@@ -464,7 +464,7 @@ export function ComparativeSketch({
             MATERIAL_COLORS[comp?.material ?? "Beton bertulang"] ??
             MATERIAL_COLORS["Beton bertulang"]!;
           const pathD =
-            poly.map((p, i) => `${i === 0 ? "M" : "L"} ${X(p[0])} ${Z(p[1])}`).join(" ") + " Z";
+            poly.map((p, i) => `${i === 0 ? "M" : "L"} ${X(p[0]!)} ${Z(p[1]!)}`).join(" ") + " Z";
           return (
             <path
               key={`a-${idx}`}

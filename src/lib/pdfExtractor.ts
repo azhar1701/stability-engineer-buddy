@@ -213,25 +213,25 @@ export function parseDimensions(text: string): ExtractedDimensions {
   // Tebal lantai dasar / footing t
   const tMatch = text.match(/(?:TEBAL\s*LANTAI|TEBAL\s*FOOTING|TEBAL)\s*[:=]?\s*(\d+[.,]?\d*)/i)
     || text.match(/\bt\s*[:=]\s*(\d+[.,]?\d*)/);
-  if (tMatch?.[1]) dims.tBase = cleanNum(tMatch[1]);
+  if (tMatch?.[1]) { const v = cleanNum(tMatch[1]); if (v !== undefined) dims.tBase = v; }
 
   // Kemiringan talud / slope hilir (misal 1:1 atau 1:0.8)
   const slopeMatch = text.match(/(?:KEMIRINGAN|SLOPE|TALUD)?\s*1\s*:\s*(\d+[.,]?\d*)/i);
-  if (slopeMatch?.[1]) dims.slopeHilir = cleanNum(slopeMatch[1]);
+  if (slopeMatch?.[1]) { const v = cleanNum(slopeMatch[1]); if (v !== undefined) dims.slopeHilir = v; }
 
   // Apron hulu dan hilir
   const apronUpMatch = text.match(/(?:APRON\s*HULU|LANTAI\s*HULU)\s*[:=]?\s*(\d+[.,]?\d*)/i);
-  if (apronUpMatch?.[1]) dims.lApronUp = cleanNum(apronUpMatch[1]);
+  if (apronUpMatch?.[1]) { const v = cleanNum(apronUpMatch[1]); if (v !== undefined) dims.lApronUp = v; }
 
   const apronDownMatch = text.match(/(?:APRON\s*HILIR|KOLAM\s*OLAK|LANTAI\s*HILIR)\s*[:=]?\s*(\d+[.,]?\d*)/i);
-  if (apronDownMatch?.[1]) dims.lApronDown = cleanNum(apronDownMatch[1]);
+  if (apronDownMatch?.[1]) { const v = cleanNum(apronDownMatch[1]); if (v !== undefined) dims.lApronDown = v; }
 
   // Cutoff hulu dan hilir
   const cutoffUpMatch = text.match(/(?:CUTOFF\s*HULU|KEDALAMAN\s*CUTOFF\s*HULU)\s*[:=]?\s*(\d+[.,]?\d*)/i);
-  if (cutoffUpMatch?.[1]) dims.dCutoffUp = cleanNum(cutoffUpMatch[1]);
+  if (cutoffUpMatch?.[1]) { const v = cleanNum(cutoffUpMatch[1]); if (v !== undefined) dims.dCutoffUp = v; }
 
   const cutoffDownMatch = text.match(/(?:CUTOFF\s*HILIR|KEDALAMAN\s*CUTOFF\s*HILIR)\s*[:=]?\s*(\d+[.,]?\d*)/i);
-  if (cutoffDownMatch?.[1]) dims.dCutoffDown = cleanNum(cutoffDownMatch[1]);
+  if (cutoffDownMatch?.[1]) { const v = cleanNum(cutoffDownMatch[1]); if (v !== undefined) dims.dCutoffDown = v; }
 
   return dims;
 }
@@ -242,7 +242,7 @@ export function parseDimensions(text: string): ExtractedDimensions {
 export function generateComponentsFromExtracted(
   type: TypeId,
   dims: ExtractedDimensions,
-  calc: { hu: number; pMercu: number }
+  calc: { hu: number; pMercu: number; hd?: number; Hsoil?: number; Df?: number; deltaH?: number }
 ): { components: Component[]; resultingB: number } {
   const comps: Component[] = [];
   const B = dims.B && dims.B > 0 ? dims.B : type === "BND" ? 6.0 : type === "DND" ? 3.0 : 3.0;

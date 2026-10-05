@@ -45,27 +45,27 @@ function RecPage() {
       if (!target) return current;
 
       const patchBack: Partial<Project> = {};
-      if (target.delta.B) {
-        patchBack.B = target.delta.B.from;
+      if (target.delta['B']) {
+        patchBack.B = target.delta['B'].from;
       }
-      if (target.delta.Df) {
-        patchBack.Df = target.delta.Df.from;
+      if (target.delta['Df']) {
+        patchBack.Df = target.delta['Df'].from;
       }
       if (
-        target.delta.dCutoffUp ||
-        target.delta.dCutoffDown ||
-        target.delta.lApronDown
+        target.delta['dCutoffUp'] ||
+        target.delta['dCutoffDown'] ||
+        target.delta['lApronDown']
       ) {
         patchBack.seepage = {
           ...(current.seepage ?? { enabled: true, soilType: "PASIR_SEDANG" }),
-          dCutoffUp: target.delta.dCutoffUp
-            ? target.delta.dCutoffUp.from
+          dCutoffUp: target.delta['dCutoffUp']
+            ? target.delta['dCutoffUp'].from
             : (current.seepage?.dCutoffUp ?? 1),
-          dCutoffDown: target.delta.dCutoffDown
-            ? target.delta.dCutoffDown.from
+          dCutoffDown: target.delta['dCutoffDown']
+            ? target.delta['dCutoffDown'].from
             : (current.seepage?.dCutoffDown ?? 1.5),
-          lApronDown: target.delta.lApronDown
-            ? target.delta.lApronDown.from
+          lApronDown: target.delta['lApronDown']
+            ? target.delta['lApronDown'].from
             : (current.seepage?.lApronDown ?? 0),
         };
       }
@@ -159,7 +159,7 @@ function RecPage() {
                 key={i}
                 rec={r}
                 project={p}
-                appliedEntry={matchedEntry}
+                appliedEntry={matchedEntry ?? undefined}
                 onApply={handleApply}
                 onRevert={handleRevert}
               />

@@ -19,6 +19,7 @@ export function ApplyDiffPanel({
   const [activeTab, setActiveTab] = useState<"params" | "sketch" | "metrics">("sketch");
 
   if (!isOpen) return null;
+  if (!solution.entry) return null;
 
   const { projectBefore: pB, projectAfter: pA, resultBefore: rB, resultAfter: rA, delta, summary } =
     solution;

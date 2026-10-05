@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { fmt, Grid, KV, Notice, NumField, PageHeader, Section, SelectField, Status, StepNav, Table } from "@/components/kit";
-import { SOIL_PROFILES } from "@/lib/engine/master";
+import { fmt, Grid, KV, Notice, NumField, PageHeader, Section, SelectField, Status, StepNav, Table, AutocompleteField } from "@/components/kit";
+import { KECAMATAN, SOIL_PROFILES } from "@/lib/engine/master";
 
 export const Route = createFileRoute("/proyek/$id/tanah")({
   head: () => ({ meta: [{ title: "Tanah & Fondasi — Stabilitas Bangunan Air" }] }),
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/proyek/$id/tanah")({
 });
 
 function TanahPage() {
-  const { project: p, result: a, patch } = useProject();
+  const { project: p, result: a, patch, update } = useProject();
   const s = p.soil;
   return (
     <>
@@ -29,6 +29,17 @@ function TanahPage() {
           <SelectField label="Model tahanan geser" value={s.slidingMode} options={["GESEK", "GESEK + KOHESI"] as const} onChange={(v) => patch("soil", { slidingMode: v })} hint="R = μN (+ ca·b_eff·L)" />
           {s.slidingMode === "GESEK + KOHESI" && (
             <NumField label="Rasio adhesi ca/c'" value={s.caRatio ?? 0.67} onChange={(v) => patch("soil", { caRatio: v })} hint="0.5 - 0.75 sesuai SNI 8460:2017" />
+          )}
+          {s.mode === "SCREENING" && (
+            <AutocompleteField
+              label="Kecamatan (Kab. Ciamis)"
+              value={p.kecamatan}
+              options={Object.keys(KECAMATAN)}
+              onChange={(v) => update((x) => ({ ...x, kecamatan: v }))}
+              getBadge={(opt) => KECAMATAN[opt]?.replace(/_/g, " ")}
+              hint={`Profil penapisan aktif: ${a.soil.profileId} (${a.soil.status})`}
+              placeholder="Pilih kecamatan..."
+            />
           )}
         </Grid>
         {s.mode === "PROYEK" && <div className="mt-4"><Grid>

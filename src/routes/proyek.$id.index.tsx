@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
-import { Grid, NumField, PageHeader, Section, SelectField, Status, StepNav, TextField, Notice, AutocompleteField } from "@/components/kit";
+import { fmt, Grid, NumField, PageHeader, Section, SelectField, Status, StepNav, TextField, Notice, AutocompleteField } from "@/components/kit";
 import { KECAMATAN, TYPES, typeById, type ForceKey, type Switch, type TypeId } from "@/lib/engine/master";
 import { componentsFor } from "@/lib/engine/defaults";
 import { forceActive } from "@/lib/engine/compute";
@@ -116,7 +116,15 @@ function ProyekPage() {
             value={p.kecamatan}
             options={Object.keys(KECAMATAN)}
             onChange={(v) => set("kecamatan", v)}
-            hint="Sinkron dengan basis data geoteknik regional Ciamis"
+            getBadge={(opt) => {
+              const profId = KECAMATAN[opt];
+              return profId ? profId.replace(/_/g, " ") : undefined;
+            }}
+            hint={
+              a.soil.profileId && a.soil.profileId !== "-"
+                ? `✓ Terpetakan ke profil: ${a.soil.profileId.replace(/_/g, " ")} (γ=${fmt(a.soil.gamma)} kN/m³, φ'=${fmt(a.soil.phi, 0)}°, qa=${fmt(a.soil.qa, 0)} kPa)`
+                : "Pilih salah satu dari 27 kecamatan Kab. Ciamis untuk penapisan parameter tanah otomatis"
+            }
             placeholder="Ketik atau pilih kecamatan..."
           />
           <TextField label="Desa / Kelurahan" value={p.desa} onChange={(v) => set("desa", v)} placeholder="Nama desa" />
