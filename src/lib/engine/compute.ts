@@ -376,6 +376,8 @@ export function analyze(p: Project) {
   return { L, B, comps, W, MW, Zc_total, Xc_total, wl, soil, K, bearing, crit, act, cases, envelope, readiness, ready, Q: designQ(p), seepage };
 }
 
+export type AnalysisResult = ReturnType<typeof analyze>;
+
 function buildEnvelope(cases: CaseResult[]) {
   const on = cases.filter((c) => c.status !== "TIDAK AKTIF");
   const minBy = (f: (c: CaseResult) => number | null) => {

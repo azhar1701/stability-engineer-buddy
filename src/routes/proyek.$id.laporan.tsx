@@ -476,6 +476,55 @@ function ReportPage() {
       {included.recs && (
         <div className="report-section mb-6">
           <Section title="8. Rekomendasi & Catatan Rekayasa">
+            {p.appliedRecs && p.appliedRecs.filter((r) => r.status === "APPLIED").length > 0 && (
+              <div className="mb-4 rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3 text-xs print:border-slate-300 print:bg-slate-50">
+                <div className="font-semibold text-emerald-800 dark:text-emerald-300 print:text-black mb-2">
+                  Tindakan Rekomendasi yang Telah Diterapkan ke Pemodelan:
+                </div>
+                <table className="w-full text-left font-mono text-[11px] print:text-black">
+                  <thead>
+                    <tr className="border-b border-emerald-500/20 text-muted-foreground print:text-slate-600">
+                      <th className="py-1">Rekomendasi</th>
+                      <th className="py-1">Parameter</th>
+                      <th className="py-1">Eksisting</th>
+                      <th className="py-1">Diterapkan</th>
+                      <th className="py-1">Keterangan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-emerald-500/10 print:divide-slate-200">
+                    {p.appliedRecs
+                      .filter((r) => r.status === "APPLIED")
+                      .map((ar) =>
+                        Object.entries(ar.delta).map(([k, d], i) => (
+                          <tr key={`${ar.id}-${k}`}>
+                            {i === 0 && (
+                              <td
+                                rowSpan={Object.keys(ar.delta).length}
+                                className="py-1 font-sans font-medium text-foreground print:text-black align-top"
+                              >
+                                {ar.recTitle}
+                              </td>
+                            )}
+                            <td className="py-1 text-muted-foreground print:text-slate-600">{d.label}</td>
+                            <td className="py-1">{fmt(d.from)} {d.unit}</td>
+                            <td className="py-1 font-bold text-emerald-700 dark:text-emerald-400 print:text-black">
+                              {fmt(d.to)} {d.unit}
+                            </td>
+                            {i === 0 && (
+                              <td
+                                rowSpan={Object.keys(ar.delta).length}
+                                className="py-1 font-sans text-muted-foreground print:text-slate-600 align-top"
+                              >
+                                {ar.summary}
+                              </td>
+                            )}
+                          </tr>
+                        ))
+                      )}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <ul className="list-disc space-y-1.5 pl-5">
               {recs.map((r, i) => (
                 <li key={i} className="text-xs">

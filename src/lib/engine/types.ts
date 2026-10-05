@@ -45,6 +45,7 @@ export interface Project {
   seismic?: { enabled: boolean; kh: number; kv: number };
   seepage?: { enabled: boolean; dCutoffUp: number; dCutoffDown: number; lApronUp?: number; lApronDown?: number; soilType: string };
   cases: CaseInput[];
+  appliedRecs?: AppliedRecEntry[];
   extractedPdfMeta?: {
     fileName: string;
     detectedType: TypeId;
@@ -53,3 +54,25 @@ export interface Project {
     calculated?: Record<string, number | undefined>;
   };
 }
+
+export type SolverType = "WIDEN_B" | "ADD_CUTOFF" | "EXTEND_APRON" | "DEEPER_DF";
+
+export interface AppliedRecDelta {
+  from: number;
+  to: number;
+  label: string;
+  unit: string;
+}
+
+export interface AppliedRecEntry {
+  id: string;
+  recTitle: string;
+  appliedAt: number;
+  patch: Partial<Project>;
+  delta: Record<string, AppliedRecDelta>;
+  solverType: SolverType;
+  status: "APPLIED" | "REVERTED";
+  summary: string;
+}
+
+export type { AnalysisResult } from "./compute";
