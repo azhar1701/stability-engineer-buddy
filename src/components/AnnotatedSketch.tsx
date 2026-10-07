@@ -22,6 +22,7 @@ export interface AnnotatedSketchProps {
   onRedo?: () => void;
   onUpdateComponent?: (id: string, patch: Partial<Component>) => void;
   onUpdateCutoff?: (type: "up" | "down", depth: number) => void;
+  onUpdateApron?: (type: "up" | "down", length: number) => void;
 }
 
 export const MATERIAL_COLORS: Record<string, { fill: string; stroke: string; label: string }> = {
@@ -51,6 +52,7 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
     onRedo,
     onUpdateComponent,
     onUpdateCutoff,
+    onUpdateApron,
   },
   ref
 ) {
@@ -73,6 +75,7 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
   // Drag previews for real-time smooth interaction
   const [previewComp, setPreviewComp] = useState<{ id: string; x0: number; z0: number; name: string } | null>(null);
   const [previewCutoff, setPreviewCutoff] = useState<{ type: "up" | "down"; depth: number } | null>(null);
+  const [previewApron, setPreviewApron] = useState<{ type: "up" | "down"; length: number } | null>(null);
   const [dragHud, setDragHud] = useState<{ screenX: number; screenY: number; text: string; subtext?: string } | null>(null);
 
   const svgInternalRef = useRef<SVGSVGElement | null>(null);
@@ -96,6 +99,14 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
     origDepth: number;
     startClientX: number;
     startClientY: number;
+  } | null>(null);
+
+  const dragApronRef = useRef<{
+    type: "up" | "down";
+    origLength: number;
+    startClientX: number;
+    startClientY: number;
+    startWorldX: number;
   } | null>(null);
 
   // Sync ref with external forwarded ref
@@ -254,13 +265,15 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
   const dCutUp = previewCutoff && previewCutoff.type === "up" ? previewCutoff.depth : baseCutUp;
   const dCutDown = previewCutoff && previewCutoff.type === "down" ? previewCutoff.depth : baseCutDown;
 
-  const lApronUp = p.seepage?.enabled ? (p.seepage.lApronUp ?? 0) : 0;
-  const lApronDown = p.seepage?.enabled ? (p.seepage.lApronDown ?? 0) : 0;
-  // Use stable maxDepth for scale calculation to keep coordinate system rock-solid during dragging
+  const baseApronUp = p.seepage?.enabled ? (p.seepage.lApronUp ?? 0) : 0;
+  const baseApronDown = p.seepage?.enabled ? (p.seepage.lApronDown ?? 0) : 0;
+  const lApronUp = previewApron && previewApron.type === "up" ? previewApron.length : baseApronUp;
+  const lApronDown = previewApron && previewApron.type === "down" ? previewApron.length : baseApronDown;
+  // Use stable maxDepth and minX/maxX for scale calculation to keep coordinate system rock-solid during dragging
   const maxDepth = Math.max(baseCutUp, baseCutDown, 0.6);
 
-  const minX = Math.min(0, -lApronUp, ...pts.map((q) => q[0]!));
-  const maxX = Math.max(a.B, a.B + lApronDown, ...pts.map((q) => q[0]!), 1);
+  const minX = Math.min(0, -baseApronUp - (allowDrag ? 0.6 : 0), ...pts.map((q) => q[0]!));
+  const maxX = Math.max(a.B, a.B + baseApronDown + (allowDrag ? 0.6 : 0), ...pts.map((q) => q[0]!), 1);
   const maxZ = Math.max(
     ...pts.map((q) => q[1]!),
     isSaluran ? zWaterSaluran : hu,
@@ -286,6 +299,15 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
     const svgEl = svgInternalRef.current;
     const groupEl = viewportGroupRef.current;
     if (!svgEl || !groupEl) return { worldX: 0, worldZ: 0, groupX: 0, groupY: 0 };
+
+    if (typeof svgEl.createSVGPoint !== "function" || typeof groupEl.getScreenCTM !== "function") {
+      const rect = svgEl.getBoundingClientRect?.() ?? { left: 0, top: 0 };
+      const groupX = clientX - rect.left;
+      const groupY = clientY - rect.top;
+      const worldX = (groupX - 30) / (s || 1) + minX - pad;
+      const worldZ = (groundBaseY - groupY) / (s || 1);
+      return { worldX, worldZ, groupX, groupY };
+    }
 
     const pt = svgEl.createSVGPoint();
     pt.x = clientX;
@@ -483,18 +505,20 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
       (e.currentTarget as Element).setPointerCapture(e.pointerId);
     } catch {}
 
-    const coords = getWorldCoords(e.clientX, e.clientY);
+    const clientX = Number.isFinite(e.clientX) ? e.clientX : 0;
+    const clientY = Number.isFinite(e.clientY) ? e.clientY : 0;
+    const coords = getWorldCoords(clientX, clientY);
     dragCutoffRef.current = {
       type,
       startGroupY: coords.groupY,
       origDepth: currentDepth,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
+      startClientX: clientX,
+      startClientY: clientY,
     };
     setPreviewCutoff({ type, depth: currentDepth });
     setDragHud({
-      screenX: e.clientX,
-      screenY: e.clientY,
+      screenX: clientX,
+      screenY: clientY,
       text: `Cutoff ${type === "up" ? "Hulu" : "Hilir"}: ${fmt(currentDepth)} m`,
       subtext: "Tarik ke bawah untuk menambah kedalaman",
     });
@@ -502,7 +526,9 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
 
   const handleCutoffPointerMove = (e: React.PointerEvent) => {
     if (!dragCutoffRef.current) return;
-    const coords = getWorldCoords(e.clientX, e.clientY);
+    const clientX = Number.isFinite(e.clientX) ? e.clientX : 0;
+    const clientY = Number.isFinite(e.clientY) ? e.clientY : 0;
+    const coords = getWorldCoords(clientX, clientY);
 
     // Depth extends downwards from groundBaseY
     const rawDepth = Math.max(0, (coords.groupY - groundBaseY) / s);
@@ -520,8 +546,8 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
     const isOk = liveCw >= 5.0;
 
     setDragHud({
-      screenX: e.clientX,
-      screenY: e.clientY,
+      screenX: clientX,
+      screenY: clientY,
       text: `Cutoff ${dragCutoffRef.current.type === "up" ? "Hulu" : "Hilir"}: d = ${fmt(targetDepth)} m`,
       subtext: deltaH > 0 ? `Lane Cw ≈ ${liveCw} (${isOk ? "AMAN ✓" : "RAWAN PIPING ⚠️"})` : "Tarik untuk atur kedalaman",
     });
@@ -534,13 +560,114 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
     } catch {}
 
     const finalType = dragCutoffRef.current.type;
-    const finalDepth = previewCutoff?.depth ?? dragCutoffRef.current.origDepth;
+    const clientX = Number.isFinite(e.clientX) ? e.clientX : dragCutoffRef.current.startClientX;
+    const clientY = Number.isFinite(e.clientY) ? e.clientY : dragCutoffRef.current.startClientY;
+    const distPixel = Math.hypot(
+      clientX - dragCutoffRef.current.startClientX,
+      clientY - dragCutoffRef.current.startClientY
+    );
+    let finalDepth = previewCutoff?.depth ?? dragCutoffRef.current.origDepth;
+    if (distPixel <= 4 && dragCutoffRef.current.origDepth === 0 && finalDepth === 0) {
+      finalDepth = 1.5;
+    }
 
     dragCutoffRef.current = null;
     setPreviewCutoff(null);
     setDragHud(null);
 
     onUpdateCutoff?.(finalType, finalDepth);
+  };
+
+  // Apron Drag Handlers
+  const handleApronPointerDown = (
+    e: React.PointerEvent,
+    type: "up" | "down",
+    currentLength: number
+  ) => {
+    if (!interactive || !allowDrag) return;
+    e.stopPropagation();
+    try {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    } catch {}
+
+    const clientX = Number.isFinite(e.clientX) ? e.clientX : 0;
+    const clientY = Number.isFinite(e.clientY) ? e.clientY : 0;
+    const coords = getWorldCoords(clientX, clientY);
+    dragApronRef.current = {
+      type,
+      origLength: currentLength,
+      startClientX: clientX,
+      startClientY: clientY,
+      startWorldX: coords.worldX,
+    };
+    setPreviewApron({ type, length: currentLength });
+    setDragHud({
+      screenX: clientX,
+      screenY: clientY,
+      text: `Apron ${type === "up" ? "Hulu (Lu)" : "Hilir (Ld)"}: ${fmt(currentLength)} m`,
+      subtext: "Tarik horizontal untuk atur panjang apron",
+    });
+  };
+
+  const handleApronPointerMove = (e: React.PointerEvent) => {
+    if (!dragApronRef.current) return;
+    const clientX = Number.isFinite(e.clientX) ? e.clientX : 0;
+    const clientY = Number.isFinite(e.clientY) ? e.clientY : 0;
+    const coords = getWorldCoords(clientX, clientY);
+    const deltaWorldX = coords.worldX - dragApronRef.current.startWorldX;
+
+    let targetLength = 0;
+    if (dragApronRef.current.type === "up") {
+      const rawLength = Math.max(0, dragApronRef.current.origLength - deltaWorldX);
+      targetLength = Math.min(Math.max(0, Math.round(rawLength * 10) / 10), 30.0);
+    } else {
+      const rawLength = Math.max(0, dragApronRef.current.origLength + deltaWorldX);
+      targetLength = Math.min(Math.max(0, Math.round(rawLength * 10) / 10), 30.0);
+    }
+
+    setPreviewApron({ type: dragApronRef.current.type, length: targetLength });
+
+    const curUp = dragApronRef.current.type === "up" ? targetLength : lApronUp;
+    const curDown = dragApronRef.current.type === "down" ? targetLength : lApronDown;
+    const Lv = 2 * dCutUp + 2 * dCutDown;
+    const Lh = curUp + a.B + curDown;
+    const LcreepLane = Lv + (1 / 3) * Lh;
+    const deltaH = Math.max(hu - hd, 0);
+    const liveCw = deltaH > 0 ? +(LcreepLane / deltaH).toFixed(2) : 999;
+    const isOk = liveCw >= 5.0;
+
+    setDragHud({
+      screenX: clientX,
+      screenY: clientY,
+      text: `Apron ${dragApronRef.current.type === "up" ? "Hulu (Lu)" : "Hilir (Ld)"}: L = ${fmt(targetLength)} m`,
+      subtext: deltaH > 0 ? `Lh = ${fmt(Lh)}m · Lane Cw ≈ ${liveCw} (${isOk ? "AMAN ✓" : "RAWAN PIPING ⚠️"})` : "Tarik horizontal untuk atur panjang apron",
+    });
+  };
+
+  const handleApronPointerUp = (e: React.PointerEvent) => {
+    if (!dragApronRef.current) return;
+    try {
+      (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+    } catch {}
+
+    const finalType = dragApronRef.current.type;
+    const clientX = Number.isFinite(e.clientX) ? e.clientX : dragApronRef.current.startClientX;
+    const clientY = Number.isFinite(e.clientY) ? e.clientY : dragApronRef.current.startClientY;
+    const distPixel = Math.hypot(
+      clientX - dragApronRef.current.startClientX,
+      clientY - dragApronRef.current.startClientY
+    );
+    let finalLength = previewApron?.length ?? dragApronRef.current.origLength;
+
+    if (distPixel <= 4 && dragApronRef.current.origLength === 0 && finalLength === 0) {
+      finalLength = 3.0;
+    }
+
+    dragApronRef.current = null;
+    setPreviewApron(null);
+    setDragHud(null);
+
+    onUpdateApron?.(finalType, finalLength);
   };
 
   // Unique materials used for legend
@@ -667,7 +794,7 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
         transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
         style={{
           transformOrigin: `${W / 2}px ${H / 2}px`,
-          transition: isPanning || previewComp || previewCutoff ? "none" : "transform 0.15s ease-out",
+          transition: isPanning || previewComp || previewCutoff || previewApron ? "none" : "transform 0.15s ease-out",
         }}
       >
         {/* Subsoil Hatch under foundation base */}
@@ -675,37 +802,119 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
 
       {/* Upstream Apron if present */}
       {lApronUp > 0 && (
-        <g>
+        <g
+          className={interactive && allowDrag ? (previewApron?.type === "up" ? "cursor-grabbing" : "cursor-grab") : undefined}
+          onPointerDown={interactive && allowDrag ? (e) => handleApronPointerDown(e, "up", lApronUp) : undefined}
+          onPointerMove={interactive && allowDrag ? handleApronPointerMove : undefined}
+          onPointerUp={interactive && allowDrag ? handleApronPointerUp : undefined}
+        >
           <rect
             x={X(-lApronUp)}
             y={Z(0)}
             width={lApronUp * s}
             height={0.5 * s}
-            fill="oklch(0.85 0.02 240)"
-            stroke="oklch(0.45 0.04 245)"
-            strokeWidth={1}
+            fill={previewApron?.type === "up" ? "oklch(0.80 0.05 240)" : "oklch(0.85 0.02 240)"}
+            stroke={previewApron?.type === "up" ? "oklch(0.45 0.25 240)" : "oklch(0.45 0.04 245)"}
+            strokeWidth={previewApron?.type === "up" ? 2 : 1}
+            className="transition-colors hover:brightness-95"
           />
-          <text x={X(-lApronUp / 2)} y={Z(0) + 12} textAnchor="middle" className="fill-muted-foreground text-[8px] font-mono">
+          <rect
+            x={X(-lApronUp)}
+            y={Z(0)}
+            width={lApronUp * s}
+            height={0.5 * s}
+            fill="url(#apron-hatch)"
+            className="pointer-events-none"
+          />
+          <text
+            x={X(-lApronUp / 2)}
+            y={Z(0) + 0.25 * s + 3.5}
+            textAnchor="middle"
+            className="fill-muted-foreground text-[8px] font-mono select-none pointer-events-none"
+          >
             Apron Hulu ({fmt(lApronUp)}m)
           </text>
+          {annotate && lApronUp > 0 && (
+            <g className="text-slate-600 dark:text-slate-400 pointer-events-none">
+              <line
+                x1={X(-lApronUp)}
+                y1={Z(0) - 7}
+                x2={X(0)}
+                y2={Z(0) - 7}
+                stroke="currentColor"
+                strokeWidth={0.9}
+                markerStart="url(#dim-arrow-start)"
+                markerEnd="url(#dim-arrow-end)"
+              />
+              <text
+                x={X(-lApronUp / 2)}
+                y={Z(0) - 10}
+                textAnchor="middle"
+                className="fill-slate-700 dark:fill-slate-300 font-mono text-[8px] font-semibold"
+              >
+                Lu = {fmt(lApronUp)}m
+              </text>
+            </g>
+          )}
         </g>
       )}
 
       {/* Downstream Apron if present */}
       {lApronDown > 0 && (
-        <g>
+        <g
+          className={interactive && allowDrag ? (previewApron?.type === "down" ? "cursor-grabbing" : "cursor-grab") : undefined}
+          onPointerDown={interactive && allowDrag ? (e) => handleApronPointerDown(e, "down", lApronDown) : undefined}
+          onPointerMove={interactive && allowDrag ? handleApronPointerMove : undefined}
+          onPointerUp={interactive && allowDrag ? handleApronPointerUp : undefined}
+        >
           <rect
             x={X(a.B)}
             y={Z(0)}
             width={lApronDown * s}
             height={0.5 * s}
-            fill="oklch(0.85 0.02 240)"
-            stroke="oklch(0.45 0.04 245)"
-            strokeWidth={1}
+            fill={previewApron?.type === "down" ? "oklch(0.80 0.05 240)" : "oklch(0.85 0.02 240)"}
+            stroke={previewApron?.type === "down" ? "oklch(0.45 0.25 240)" : "oklch(0.45 0.04 245)"}
+            strokeWidth={previewApron?.type === "down" ? 2 : 1}
+            className="transition-colors hover:brightness-95"
           />
-          <text x={X(a.B + lApronDown / 2)} y={Z(0) + 12} textAnchor="middle" className="fill-muted-foreground text-[8px] font-mono">
+          <rect
+            x={X(a.B)}
+            y={Z(0)}
+            width={lApronDown * s}
+            height={0.5 * s}
+            fill="url(#apron-hatch)"
+            className="pointer-events-none"
+          />
+          <text
+            x={X(a.B + lApronDown / 2)}
+            y={Z(0) + 0.25 * s + 3.5}
+            textAnchor="middle"
+            className="fill-muted-foreground text-[8px] font-mono select-none pointer-events-none"
+          >
             Apron Hilir ({fmt(lApronDown)}m)
           </text>
+          {annotate && lApronDown > 0 && (
+            <g className="text-slate-600 dark:text-slate-400 pointer-events-none">
+              <line
+                x1={X(a.B)}
+                y1={Z(0) - 7}
+                x2={X(a.B + lApronDown)}
+                y2={Z(0) - 7}
+                stroke="currentColor"
+                strokeWidth={0.9}
+                markerStart="url(#dim-arrow-start)"
+                markerEnd="url(#dim-arrow-end)"
+              />
+              <text
+                x={X(a.B + lApronDown / 2)}
+                y={Z(0) - 10}
+                textAnchor="middle"
+                className="fill-slate-700 dark:fill-slate-300 font-mono text-[8px] font-semibold"
+              >
+                Ld = {fmt(lApronDown)}m
+              </text>
+            </g>
+          )}
         </g>
       )}
 
@@ -897,7 +1106,7 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
             const xDim = xUpStart + 0.35 * pad;
             return (
               <g>
-                <rect x={X(xUpStart)} y={Z(hu)} width={(-xUpStart) * s} height={hu * s} fill="url(#water-hulu-grad-ann)" />
+                <rect x={X(xUpStart)} y={Z(hu)} width={(-xUpStart) * s} height={hu * s} fill="url(#water-hulu-grad-ann)" className="pointer-events-none" />
                 <line
                   x1={X(xUpStart)}
                   x2={X(0)}
@@ -952,6 +1161,7 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
                   width={(xDownEnd - a.B) * s}
                   height={hd * s}
                   fill="url(#water-hilir-grad-ann)"
+                  className="pointer-events-none"
                 />
                 <line x1={X(a.B)} x2={W - 10} y1={Z(hd)} y2={Z(hd)} stroke="oklch(0.55 0.16 230)" strokeWidth={1.5} />
                 <polygon
@@ -1192,6 +1402,126 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
                 className="font-sans text-[8px] font-bold select-none pointer-events-none"
               >
                 + Cutoff Hilir ↕
+              </text>
+            </g>
+          )}
+        </g>
+      )}
+
+      {/* Upstream Apron Interactive Handle */}
+      {interactive && allowDrag && (
+        <g
+          className="cursor-ew-resize group"
+          role="button"
+          aria-label="Apron Hulu Handle"
+          onPointerDown={(e) => handleApronPointerDown(e, "up", lApronUp)}
+          onPointerMove={handleApronPointerMove}
+          onPointerUp={handleApronPointerUp}
+        >
+          {lApronUp > 0 ? (
+            <g transform={`translate(${X(-lApronUp)}, ${Z(0) + 0.25 * s})`}>
+              <rect
+                x={-26}
+                y={-8}
+                width={52}
+                height={16}
+                rx={8}
+                fill="oklch(0.35 0.12 245)"
+                className="stroke-background transition-transform group-hover:scale-110 shadow-md"
+                strokeWidth={1.5}
+              />
+              <text
+                x={0}
+                y={3.5}
+                textAnchor="middle"
+                fill="#ffffff"
+                className="font-mono text-[8.5px] font-bold select-none pointer-events-none"
+              >
+                ↔ Lu {fmt(lApronUp)}m
+              </text>
+            </g>
+          ) : (
+            <g transform={`translate(${X(0) - 44}, ${Z(0) + 0.25 * s})`}>
+              <rect
+                x={-40}
+                y={-9}
+                width={80}
+                height={18}
+                rx={9}
+                fill="oklch(0.92 0.04 240 / 0.9)"
+                stroke="oklch(0.5 0.15 240)"
+                strokeWidth={1}
+                strokeDasharray="3 2"
+                className="transition-transform group-hover:scale-105 shadow-2xs"
+              />
+              <text
+                x={0}
+                y={3.5}
+                textAnchor="middle"
+                fill="oklch(0.35 0.12 240)"
+                className="font-sans text-[8px] font-bold select-none pointer-events-none"
+              >
+                + Apron Hulu ↔
+              </text>
+            </g>
+          )}
+        </g>
+      )}
+
+      {/* Downstream Apron Interactive Handle */}
+      {interactive && allowDrag && (
+        <g
+          className="cursor-ew-resize group"
+          role="button"
+          aria-label="Apron Hilir Handle"
+          onPointerDown={(e) => handleApronPointerDown(e, "down", lApronDown)}
+          onPointerMove={handleApronPointerMove}
+          onPointerUp={handleApronPointerUp}
+        >
+          {lApronDown > 0 ? (
+            <g transform={`translate(${X(a.B + lApronDown)}, ${Z(0) + 0.25 * s})`}>
+              <rect
+                x={-26}
+                y={-8}
+                width={52}
+                height={16}
+                rx={8}
+                fill="oklch(0.35 0.12 245)"
+                className="stroke-background transition-transform group-hover:scale-110 shadow-md"
+                strokeWidth={1.5}
+              />
+              <text
+                x={0}
+                y={3.5}
+                textAnchor="middle"
+                fill="#ffffff"
+                className="font-mono text-[8.5px] font-bold select-none pointer-events-none"
+              >
+                ↔ Ld {fmt(lApronDown)}m
+              </text>
+            </g>
+          ) : (
+            <g transform={`translate(${X(a.B) + 44}, ${Z(0) + 0.25 * s})`}>
+              <rect
+                x={-40}
+                y={-9}
+                width={80}
+                height={18}
+                rx={9}
+                fill="oklch(0.92 0.04 240 / 0.9)"
+                stroke="oklch(0.5 0.15 240)"
+                strokeWidth={1}
+                strokeDasharray="3 2"
+                className="transition-transform group-hover:scale-105 shadow-2xs"
+              />
+              <text
+                x={0}
+                y={3.5}
+                textAnchor="middle"
+                fill="oklch(0.35 0.12 240)"
+                className="font-sans text-[8px] font-bold select-none pointer-events-none"
+              >
+                + Apron Hilir ↔
               </text>
             </g>
           )}

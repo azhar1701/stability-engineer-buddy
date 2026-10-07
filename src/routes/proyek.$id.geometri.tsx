@@ -725,6 +725,19 @@ function GeometriPage() {
                   },
                 }));
               }}
+              onUpdateApron={(type, length) => {
+                safeUpdate((x) => ({
+                  ...x,
+                  seepage: {
+                    enabled: true,
+                    soilType: x.seepage?.soilType ?? "PASIR_SEDANG",
+                    dCutoffUp: x.seepage?.dCutoffUp ?? 1.5,
+                    dCutoffDown: x.seepage?.dCutoffDown ?? 2.0,
+                    lApronUp: type === "up" ? length : (x.seepage?.lApronUp ?? 0),
+                    lApronDown: type === "down" ? length : (x.seepage?.lApronDown ?? 0),
+                  },
+                }));
+              }}
             />
 
             {/* Quick helper footer below sketch */}
@@ -735,9 +748,146 @@ function GeometriPage() {
                 </span>
                 <span><strong>Drag balok</strong> geser X₀/Z₀</span>
                 <span>• <strong>Handle ↕</strong> kedalaman Cutoff</span>
+                <span>• <strong>Handle ↔</strong> panjang Apron Hulu/Hilir</span>
                 <span>• <strong>Scroll roda</strong> Zoom</span>
               </div>
               <span className="text-[10px] text-muted-foreground/80">Klik balok untuk sorot kartu</span>
+            </div>
+          </Section>
+
+          {/* Pengaturan Apron & Cutoff Rembesan */}
+          <Section
+            title="Lantai Lindung (Apron) & Cutoff Rembesan"
+            aside={
+              <span className="text-[11px] font-medium text-muted-foreground">
+                ↔ Geser drag & drop langsung di sketsa
+              </span>
+            }
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium mb-1">
+                  <span>Apron Hulu (Lu)</span>
+                  <span className="text-[10px] text-primary font-mono font-semibold">↔ Drag</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <NumInput
+                    className="h-8 w-full rounded border border-input/60 bg-background px-2 text-xs font-mono font-bold"
+                    value={p.seepage?.lApronUp ?? 0}
+                    onChange={(val) =>
+                      safeUpdate((x) => ({
+                        ...x,
+                        seepage: {
+                          enabled: true,
+                          soilType: x.seepage?.soilType ?? "PASIR_SEDANG",
+                          dCutoffUp: x.seepage?.dCutoffUp ?? 1.5,
+                          dCutoffDown: x.seepage?.dCutoffDown ?? 2.0,
+                          lApronUp: Math.max(0, val),
+                          lApronDown: x.seepage?.lApronDown ?? 0,
+                        },
+                      }))
+                    }
+                  />
+                  <span className="text-xs text-muted-foreground font-mono">m</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium mb-1">
+                  <span>Apron Hilir (Ld)</span>
+                  <span className="text-[10px] text-primary font-mono font-semibold">↔ Drag</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <NumInput
+                    className="h-8 w-full rounded border border-input/60 bg-background px-2 text-xs font-mono font-bold"
+                    value={p.seepage?.lApronDown ?? 0}
+                    onChange={(val) =>
+                      safeUpdate((x) => ({
+                        ...x,
+                        seepage: {
+                          enabled: true,
+                          soilType: x.seepage?.soilType ?? "PASIR_SEDANG",
+                          dCutoffUp: x.seepage?.dCutoffUp ?? 1.5,
+                          dCutoffDown: x.seepage?.dCutoffDown ?? 2.0,
+                          lApronUp: x.seepage?.lApronUp ?? 0,
+                          lApronDown: Math.max(0, val),
+                        },
+                      }))
+                    }
+                  />
+                  <span className="text-xs text-muted-foreground font-mono">m</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium mb-1">
+                  <span>Cutoff Hulu (d_up)</span>
+                  <span className="text-[10px] text-primary font-mono font-semibold">↕ Drag</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <NumInput
+                    className="h-8 w-full rounded border border-input/60 bg-background px-2 text-xs font-mono font-bold"
+                    value={p.seepage?.dCutoffUp ?? 0}
+                    onChange={(val) =>
+                      safeUpdate((x) => ({
+                        ...x,
+                        seepage: {
+                          enabled: true,
+                          soilType: x.seepage?.soilType ?? "PASIR_SEDANG",
+                          dCutoffUp: Math.max(0, val),
+                          dCutoffDown: x.seepage?.dCutoffDown ?? 2.0,
+                          lApronUp: x.seepage?.lApronUp ?? 0,
+                          lApronDown: x.seepage?.lApronDown ?? 0,
+                        },
+                      }))
+                    }
+                  />
+                  <span className="text-xs text-muted-foreground font-mono">m</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border/70 bg-card p-2.5 shadow-2xs">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium mb-1">
+                  <span>Cutoff Hilir (d_down)</span>
+                  <span className="text-[10px] text-primary font-mono font-semibold">↕ Drag</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <NumInput
+                    className="h-8 w-full rounded border border-input/60 bg-background px-2 text-xs font-mono font-bold"
+                    value={p.seepage?.dCutoffDown ?? 0}
+                    onChange={(val) =>
+                      safeUpdate((x) => ({
+                        ...x,
+                        seepage: {
+                          enabled: true,
+                          soilType: x.seepage?.soilType ?? "PASIR_SEDANG",
+                          dCutoffUp: x.seepage?.dCutoffUp ?? 1.5,
+                          dCutoffDown: Math.max(0, val),
+                          lApronUp: x.seepage?.lApronUp ?? 0,
+                          lApronDown: x.seepage?.lApronDown ?? 0,
+                        },
+                      }))
+                    }
+                  />
+                  <span className="text-xs text-muted-foreground font-mono">m</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="text-muted-foreground">Panjang Jalur Rembesan:</span>
+                <span className="font-mono font-semibold text-foreground">
+                  Lh = {fmt((p.seepage?.lApronUp ?? 0) + a.B + (p.seepage?.lApronDown ?? 0))} m
+                </span>
+                <span className="text-muted-foreground">·</span>
+                <span className="font-mono font-semibold text-foreground">
+                  Lv = {fmt(2 * (p.seepage?.dCutoffUp ?? 0) + 2 * (p.seepage?.dCutoffDown ?? 0))} m
+                </span>
+              </div>
+              <span className="text-[11px] text-muted-foreground/80">
+                Piping dicek pada langkah 05 (Uplift & Rembesan)
+              </span>
             </div>
           </Section>
 

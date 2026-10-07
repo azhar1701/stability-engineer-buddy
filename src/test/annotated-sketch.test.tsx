@@ -111,4 +111,97 @@ describe("AnnotatedSketch Interactive Features", () => {
     fireEvent.click(firstCompText.closest("g")!);
     expect(onClickComp).toHaveBeenCalledWith(0);
   });
+
+  it("renders apron drag handles and ghost buttons when allowDrag=true", () => {
+    // 1. With apron = 0: ghost handles are displayed
+    const { rerender } = render(
+      <AnnotatedSketch
+        project={{
+          ...p,
+          seepage: { enabled: true, dCutoffUp: 1.5, dCutoffDown: 2.0, lApronUp: 0, lApronDown: 0, soilType: "PASIR_SEDANG" },
+        }}
+        result={a}
+        annotate={true}
+        interactive={true}
+        allowDrag={true}
+      />
+    );
+
+    expect(screen.getByText("+ Apron Hulu ↔")).toBeInTheDocument();
+    expect(screen.getByText("+ Apron Hilir ↔")).toBeInTheDocument();
+
+    // 2. With apron > 0: handle badges with dimensions are displayed
+    rerender(
+      <AnnotatedSketch
+        project={{
+          ...p,
+          seepage: { enabled: true, dCutoffUp: 1.5, dCutoffDown: 2.0, lApronUp: 3.5, lApronDown: 5.0, soilType: "PASIR_SEDANG" },
+        }}
+        result={a}
+        annotate={true}
+        interactive={true}
+        allowDrag={true}
+      />
+    );
+
+    expect(screen.getByText(/↔ Lu 3,50m/i)).toBeInTheDocument();
+    expect(screen.getByText(/↔ Ld 5,00m/i)).toBeInTheDocument();
+  });
+
+  it("triggers onUpdateApron with default length when ghost button is clicked", () => {
+    const onUpdateApron = vi.fn();
+    render(
+      <AnnotatedSketch
+        project={{
+          ...p,
+          seepage: { enabled: true, dCutoffUp: 1.5, dCutoffDown: 2.0, lApronUp: 0, lApronDown: 0, soilType: "PASIR_SEDANG" },
+        }}
+        result={a}
+        annotate={true}
+        interactive={true}
+        allowDrag={true}
+        onUpdateApron={onUpdateApron}
+      />
+    );
+
+    const ghostUp = screen.getByText("+ Apron Hulu ↔");
+    const ghostUpGroup = ghostUp.closest("g[role='button']")!;
+    fireEvent.pointerDown(ghostUpGroup, { clientX: 100, clientY: 100, pointerId: 1 });
+    fireEvent.pointerUp(ghostUpGroup, { clientX: 100, clientY: 100, pointerId: 1 });
+
+    expect(onUpdateApron).toHaveBeenCalledWith("up", 3.0);
+
+    const ghostDown = screen.getByText("+ Apron Hilir ↔");
+    const ghostDownGroup = ghostDown.closest("g[role='button']")!;
+    fireEvent.pointerDown(ghostDownGroup, { clientX: 200, clientY: 100, pointerId: 2 });
+    fireEvent.pointerUp(ghostDownGroup, { clientX: 200, clientY: 100, pointerId: 2 });
+
+    expect(onUpdateApron).toHaveBeenCalledWith("down", 3.0);
+  });
+
+  it("triggers onUpdateApron when apron handle is dragged with pointer movement", () => {
+    const onUpdateApron = vi.fn();
+    render(
+      <AnnotatedSketch
+        project={{
+          ...p,
+          seepage: { enabled: true, dCutoffUp: 1.5, dCutoffDown: 2.0, lApronUp: 3.0, lApronDown: 4.0, soilType: "PASIR_SEDANG" },
+        }}
+        result={a}
+        annotate={true}
+        interactive={true}
+        allowDrag={true}
+        onUpdateApron={onUpdateApron}
+      />
+    );
+
+    const handleUp = screen.getByText(/↔ Lu 3,00m/i);
+    const handleUpGroup = handleUp.closest("g[role='button']")!;
+    fireEvent.pointerDown(handleUpGroup, { clientX: 100, clientY: 100, pointerId: 1 });
+    // Drag to the left (e.g. from 100 to 50)
+    fireEvent.pointerMove(handleUpGroup, { clientX: 50, clientY: 100, pointerId: 1 });
+    fireEvent.pointerUp(handleUpGroup, { clientX: 50, clientY: 100, pointerId: 1 });
+
+    expect(onUpdateApron).toHaveBeenCalledWith("up", expect.any(Number));
+  });
 });
