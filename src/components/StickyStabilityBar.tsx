@@ -9,12 +9,14 @@ export interface StickyStabilityBarProps {
   project?: Project;
   result?: AnalysisResult;
   className?: string;
+  fluid?: boolean;
 }
 
 export function StickyStabilityBar({
   project: propProject,
   result: propResult,
   className = "",
+  fluid = false,
 }: StickyStabilityBarProps) {
   let hookContext: { project: Project; result: AnalysisResult } | null = null;
   try {
@@ -138,7 +140,7 @@ export function StickyStabilityBar({
       {/* Expanded Breakdown Drawer */}
       {isExpanded && (
         <div className="border-t border-border/80 bg-background/95 backdrop-blur-xl px-4 py-4 shadow-2xl transition-all max-h-80 overflow-y-auto animate-in slide-in-from-bottom-4">
-          <div className="mx-auto max-w-6xl">
+          <div className={cn("mx-auto transition-all duration-300", fluid ? "max-w-[1820px] px-2 sm:px-4" : "max-w-6xl")}>
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm text-foreground">Kombinasi Kasus Pembebanan Stabilitas</span>
@@ -224,7 +226,7 @@ export function StickyStabilityBar({
 
       {/* Main Bottom Sticky Bar */}
       <div className="border-t border-border/80 bg-background/90 px-4 py-2.5 backdrop-blur-xl shadow-lg">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 text-xs">
+        <div className={cn("mx-auto flex flex-wrap items-center justify-between gap-3 text-xs transition-all duration-300", fluid ? "max-w-[1820px] px-2 sm:px-4" : "max-w-6xl")}>
           {/* Status Badge & Title */}
           <div className="flex items-center gap-2.5">
             <div className={cn("flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold shadow-xs", statusConfig.badgeClass)}>

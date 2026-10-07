@@ -64,7 +64,7 @@ function KasusPage() {
               </span>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {p.cases.map((c, i) => {
                 const r = a.cases[i]!;
                 const def = LOAD_CASES.find((d) => d.id === c.id);

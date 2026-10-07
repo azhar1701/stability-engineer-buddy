@@ -63,4 +63,13 @@ describe("StickyStabilityBar component", () => {
     fireEvent.click(pill);
     expect(screen.getByText("SF Geser:")).toBeInTheDocument();
   });
+
+  it("adapts container to wide fluid layout when fluid prop is true", () => {
+    const proj = uatSample();
+    const result = analyze(proj);
+
+    const { container } = render(<StickyStabilityBar project={proj} result={result} fluid={true} />);
+    const fluidContainers = container.querySelectorAll(".max-w-\\[1820px\\]");
+    expect(fluidContainers.length).toBeGreaterThan(0);
+  });
 });
