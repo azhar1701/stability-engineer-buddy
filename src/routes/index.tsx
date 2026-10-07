@@ -72,19 +72,19 @@ function Dashboard() {
               <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-sidebar-accent-foreground lg:text-4xl">Waterway Stability Hub</h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-sidebar-foreground/80">Platform terintegrasi analisis stabilitas gravitasi: geser, guling, eksentrisitas, daya dukung, rembesan piping, dan beban gempa pseudostatik.</p>
             </div>
-            <div className="flex flex-wrap gap-2.5">
-              <button onClick={() => setWizardOpen(true)} className="inline-flex items-center gap-2 rounded-md bg-sidebar-primary px-4 py-2.5 text-xs font-bold text-sidebar-primary-foreground shadow-sm transition-all hover:bg-sidebar-primary/90 hover:shadow-md">
-                + Buat Proyek Baru
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={() => setWizardOpen(true)} className="inline-flex items-center gap-1.5 rounded-md bg-sidebar-primary px-3.5 py-2 text-xs font-semibold text-sidebar-primary-foreground shadow-xs transition-all hover:bg-sidebar-primary/90">
+                + Proyek Baru
               </button>
-              <button onClick={() => go(create(uatSample()))} className="rounded-md border border-sidebar-border bg-sidebar-accent/50 px-3.5 py-2.5 text-xs font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                Muat Sampel UAT Bendung
+              <button onClick={() => go(create(uatSample()))} className="rounded-md border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 text-xs font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                Sampel Bendung
               </button>
-              <button onClick={() => fileRef.current?.click()} className="rounded-md border border-sidebar-border px-3.5 py-2.5 text-xs font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent">
+              <button onClick={() => fileRef.current?.click()} className="rounded-md border border-sidebar-border px-3 py-2 text-xs font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent">
                 Impor JSON
               </button>
               {projects.length > 0 && (
-                <button onClick={() => exportJson(projects, "semua-proyek-stabilitas.json")} className="rounded-md border border-sidebar-border px-3.5 py-2.5 text-xs font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent">
-                  Cadangkan Semua
+                <button onClick={() => exportJson(projects, "semua-proyek-stabilitas.json")} className="rounded-md border border-sidebar-border px-3 py-2 text-xs font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent">
+                  Cadangkan
                 </button>
               )}
               <input ref={fileRef} type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />

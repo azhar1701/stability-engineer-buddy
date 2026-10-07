@@ -85,14 +85,122 @@ export function Grid({ children }: { children: ReactNode }) {
 
 const inputCls = "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 hover:border-input/80";
 
-export function NumField({ label, unit, value, onChange, step = "any", hint }: { label: string; unit?: string; value: number; onChange: (v: number) => void; step?: string; hint?: string }) {
+export interface NumInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> {
+  value: number;
+  onChange: (v: number) => void;
+  className?: string;
+  step?: string;
+}
+
+export function NumInput({
+  value,
+  onChange,
+  className,
+  step = "any",
+  onFocus,
+  onBlur,
+  ...props
+}: NumInputProps) {
+  const [localVal, setLocalVal] = useState<string>(() =>
+    Number.isFinite(value) ? String(value) : "0"
+  );
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalVal(Number.isFinite(value) ? String(value) : "0");
+    }
+  }, [value, isFocused]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setLocalVal(text);
+    if (text === "" || text === "-" || text === "." || text === "-.") {
+      return;
+    }
+    const parsed = parseFloat(text);
+    if (Number.isFinite(parsed)) {
+      onChange(parsed);
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsFocused(false);
+    if (localVal === "" || localVal === "-" || localVal === "." || localVal === "-.") {
+      setLocalVal("0");
+      onChange(0);
+    } else {
+      const parsed = parseFloat(localVal);
+      if (Number.isFinite(parsed)) {
+        setLocalVal(String(parsed));
+        onChange(parsed);
+      } else {
+        setLocalVal("0");
+        onChange(0);
+      }
+    }
+    onBlur?.(e);
+  };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsFocused(true);
+    setLocalVal(Number.isFinite(value) ? String(value) : "");
+    onFocus?.(e);
+  };
+
+  return (
+    <input
+      type="number"
+      step={step}
+      className={className}
+      value={isFocused ? localVal : (Number.isFinite(value) ? value : 0)}
+      onFocus={handleFocus}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      {...props}
+    />
+  );
+}
+
+export function NumField({
+  label,
+  unit,
+  value,
+  onChange,
+  step = "any",
+  hint,
+  placeholder,
+  min,
+  max,
+}: {
+  label: string;
+  unit?: string;
+  value: number;
+  onChange: (v: number) => void;
+  step?: string;
+  hint?: string;
+  placeholder?: string;
+  min?: number;
+  max?: number;
+}) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-foreground/80">{label}</span>
       <div className="flex">
-        <input type="number" step={step} className={cn(inputCls, "num", unit && "rounded-r-none border-r-0")} value={Number.isFinite(value) ? value : 0}
-          onChange={(e) => onChange(e.target.value === "" ? 0 : parseFloat(e.target.value))} />
-        {unit && <span className="num flex items-center rounded-r-md border border-input bg-muted px-2.5 text-xs font-medium text-muted-foreground">{unit}</span>}
+        <NumInput
+          step={step}
+          min={min}
+          max={max}
+          placeholder={placeholder}
+          className={cn(inputCls, "num", unit && "rounded-r-none border-r-0")}
+          value={value}
+          onChange={onChange}
+        />
+        {unit && (
+          <span className="num flex items-center rounded-r-md border border-input bg-muted px-2.5 text-xs font-medium text-muted-foreground">
+            {unit}
+          </span>
+        )}
       </div>
       {hint && <span className="mt-1 block text-[11px] leading-tight text-muted-foreground">{hint}</span>}
     </label>
@@ -421,15 +529,15 @@ export function KV({ k, v, unit }: { k: string; v: ReactNode; unit?: string }) {
 
 export function StepNav({ prev, next, projectId }: { prev?: { to: string; label: string }; next?: { to: string; label: string }; projectId: string }) {
   return (
-    <div className="no-print mt-10 flex items-center justify-between border-t border-border pt-5">
+    <div className="no-print mt-8 flex items-center justify-between border-t border-border/80 pt-4">
       {prev ? (
-        <Link to={prev.to} params={{ id: projectId }} className="inline-flex items-center gap-2 rounded-md border border-input bg-card px-4 py-2 text-xs font-medium text-foreground transition-all hover:bg-muted">
+        <Link to={prev.to} params={{ id: projectId }} className="inline-flex items-center gap-1.5 rounded-md border border-input/60 bg-card px-3.5 py-1.5 text-xs font-medium text-foreground transition-all hover:bg-muted shadow-2xs">
           ← {prev.label}
         </Link>
       ) : <div />}
       {next && (
-        <Link to={next.to} params={{ id: projectId }} className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 hover:shadow-sm">
-          Lanjut: {next.label} →
+        <Link to={next.to} params={{ id: projectId }} className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 hover:shadow-sm">
+          {next.label} →
         </Link>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { fmt } from "@/components/kit";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,35 @@ export function StickyStabilityBar({
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+
+  // Delta trend tracking for safety factors
+  const prevSlideRef = useRef<number | null>(null);
+  const prevOverRef = useRef<number | null>(null);
+  const [slideDelta, setSlideDelta] = useState<number | null>(null);
+  const [overDelta, setOverDelta] = useState<number | null>(null);
+
+  const slideCase = a?.envelope.slide?.c;
+  const overCase = a?.envelope.over?.c;
+
+  useEffect(() => {
+    const curSlide = slideCase?.fsSlide ?? null;
+    if (prevSlideRef.current !== null && curSlide !== null && Math.abs(curSlide - prevSlideRef.current) >= 0.005) {
+      setSlideDelta(curSlide - prevSlideRef.current);
+      const timer = setTimeout(() => setSlideDelta(null), 3500);
+      return () => clearTimeout(timer);
+    }
+    prevSlideRef.current = curSlide;
+  }, [slideCase?.fsSlide]);
+
+  useEffect(() => {
+    const curOver = overCase?.fsOverturn ?? null;
+    if (prevOverRef.current !== null && curOver !== null && Math.abs(curOver - prevOverRef.current) >= 0.005) {
+      setOverDelta(curOver - prevOverRef.current);
+      const timer = setTimeout(() => setOverDelta(null), 3500);
+      return () => clearTimeout(timer);
+    }
+    prevOverRef.current = curOver;
+  }, [overCase?.fsOverturn]);
 
   if (!p || !a) return null;
 
@@ -75,8 +104,6 @@ export function StickyStabilityBar({
   };
 
   // Governing load cases
-  const slideCase = env.slide?.c;
-  const overCase = env.over?.c;
   const bearingCase = env.ratio?.c;
 
   // Minimized Floating Pill
@@ -123,14 +150,14 @@ export function StickyStabilityBar({
                 <Link
                   to="/proyek/$id/stabilitas"
                   params={{ id: p.id }}
-                  className="rounded-md bg-primary/10 border border-primary/25 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+                  className="h-7 px-2.5 rounded-md bg-primary/10 border border-primary/25 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors flex items-center gap-1"
                 >
-                  Buka Analisis Stabilitas Lengkap →
+                  Analisis Lengkap →
                 </Link>
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
-                  className="rounded-md p-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  className="h-7 w-7 rounded-md text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors flex items-center justify-center"
                 >
                   ✕
                 </button>
@@ -225,6 +252,18 @@ export function StickyStabilityBar({
               <span className="font-bold">
                 {slideCase?.fsSlide != null ? fmt(slideCase.fsSlide, 2) : "—"}
               </span>
+              {slideDelta !== null && (
+                <span
+                  className={cn(
+                    "rounded px-1 text-[9.5px] font-bold animate-in fade-in zoom-in-95",
+                    slideDelta > 0
+                      ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                      : "bg-rose-500/20 text-rose-600 dark:text-rose-400"
+                  )}
+                >
+                  {slideDelta > 0 ? `▲ +${slideDelta.toFixed(2)}` : `▼ ${slideDelta.toFixed(2)}`}
+                </span>
+              )}
               <span className="text-[10px] text-muted-foreground font-normal">
                 (≥{fmt(slideCase?.fsSlideMin ?? 1.5, 2)})
               </span>
@@ -245,6 +284,18 @@ export function StickyStabilityBar({
               <span className="font-bold">
                 {overCase?.fsOverturn != null ? fmt(overCase.fsOverturn, 2) : "—"}
               </span>
+              {overDelta !== null && (
+                <span
+                  className={cn(
+                    "rounded px-1 text-[9.5px] font-bold animate-in fade-in zoom-in-95",
+                    overDelta > 0
+                      ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                      : "bg-rose-500/20 text-rose-600 dark:text-rose-400"
+                  )}
+                >
+                  {overDelta > 0 ? `▲ +${overDelta.toFixed(2)}` : `▼ ${overDelta.toFixed(2)}`}
+                </span>
+              )}
               <span className="text-[10px] text-muted-foreground font-normal">
                 (≥{fmt(overCase?.fsOverturnMin ?? 1.5, 2)})
               </span>
@@ -290,15 +341,15 @@ export function StickyStabilityBar({
             <button
               type="button"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors flex items-center gap-1"
+              className="h-7 rounded-md border border-input/60 bg-card px-2.5 text-xs font-medium text-foreground hover:bg-muted transition-colors flex items-center gap-1 shadow-2xs"
             >
               <span>{isExpanded ? "Tutup Detail" : "Detail Kasus"}</span>
-              <span className="text-[10px]">{isExpanded ? "▾" : "▴"}</span>
+              <span className="text-[10px] opacity-70">{isExpanded ? "▾" : "▴"}</span>
             </button>
             <Link
               to="/proyek/$id/stabilitas"
               params={{ id: p.id }}
-              className="hidden sm:inline-flex rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
+              className="hidden sm:inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
             >
               Evaluasi →
             </Link>
@@ -306,7 +357,7 @@ export function StickyStabilityBar({
               type="button"
               onClick={() => setIsMinimized(true)}
               title="Kecilkan bar ke pojok bawah"
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="h-7 w-7 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors flex items-center justify-center text-xs"
             >
               ✕
             </button>
