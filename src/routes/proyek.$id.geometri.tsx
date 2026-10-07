@@ -37,6 +37,8 @@ function GeometriPage() {
   const [viewMode, setViewMode] = useState<"CARD" | "TABLE">("CARD");
   const [isParametricModalOpen, setIsParametricModalOpen] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
+  const [isInteractive, setIsInteractive] = useState(true);
+  const [selectedCompIdx, setSelectedCompIdx] = useState<number | null>(null);
   const sketchRef = useRef<SVGSVGElement>(null);
   const upd = (id: string, patch: Partial<Component>) => update((x) => ({ ...x, components: x.components.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
   const add = (name = "Komponen") => update((x) => ({ ...x, components: [...x.components, { id: uid(), name, shape: "PERSEGI", b1: 0, b2: 0, h: 0, x0: 0, z0: 0, material: "Beton bertulang" }] }));
@@ -148,7 +150,16 @@ function GeometriPage() {
               const canFlip = c.shape === "TRAPESIUM_LERENG_HILIR" || c.shape === "TRAPESIUM_LERENG_HULU" || c.shape === "SEGITIGA_KANAN" || c.shape === "SEGITIGA_KIRI";
 
               return (
-                <div key={c.id} className={cn("rounded-lg border p-4 transition-all bg-card shadow-xs", isOverB ? "border-destructive/60 bg-destructive/5" : "border-border")}>
+                <div
+                  key={c.id}
+                  id={`comp-card-${i}`}
+                  onClick={() => setSelectedCompIdx(i)}
+                  className={cn(
+                    "rounded-lg border p-4 transition-all bg-card shadow-xs cursor-pointer",
+                    selectedCompIdx === i ? "ring-2 ring-primary border-primary shadow-sm" : "",
+                    isOverB ? "border-destructive/60 bg-destructive/5" : "border-border"
+                  )}
+                >
                   <div className="flex items-center justify-between border-b pb-2.5">
                     <div className="flex items-center gap-2">
                       <span className="num flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[11px] font-bold text-muted-foreground">
@@ -285,7 +296,11 @@ function GeometriPage() {
                 {p.components.map((c, i) => {
                   const r = a.comps[i]!;
                   return (
-                    <tr key={c.id} className="border-t">
+                    <tr
+                      key={c.id}
+                      onClick={() => setSelectedCompIdx(i)}
+                      className={cn("border-t cursor-pointer transition-colors", selectedCompIdx === i ? "bg-primary/10 font-semibold" : "hover:bg-muted/40")}
+                    >
                       <td className="p-1"><input className={cell + " font-sans"} value={c.name} onChange={(e) => upd(c.id, { name: e.target.value })} /></td>
                       <td className="p-1"><select className={cell + " font-sans"} value={c.shape} onChange={(e) => upd(c.id, { shape: e.target.value as Shape })}>{SHAPES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}</select></td>
                       <td className="w-20 p-1">{num(c, "b1")}</td>
@@ -348,7 +363,21 @@ function GeometriPage() {
         <Section
           title="Sketsa penampang & Geometri Beranotasi"
           aside={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsInteractive((v) => !v)}
+                className={cn(
+                  "rounded px-2.5 py-1 text-xs font-medium border transition-colors flex items-center gap-1.5",
+                  isInteractive
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-semibold"
+                    : "bg-muted/50 border-input text-muted-foreground hover:text-foreground"
+                )}
+                title="Aktifkan/nonaktifkan drag & drop posisi komponen dan cutoff pada sketsa"
+              >
+                <span>{isInteractive ? "✨" : "🔒"}</span>
+                <span>{isInteractive ? "Mode Drag Aktif" : "Mode Drag Mati"}</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setShowAnnotations((v) => !v)}
@@ -373,12 +402,48 @@ function GeometriPage() {
             </div>
           }
         >
+          {isInteractive && (
+            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-[11px] text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                  <span>💡</span> Tips Kustomisasi Visual:
+                </span>
+                <span>• <strong>Drag komponen</strong> untuk geser posisi X₀ / Z₀</span>
+                <span>• <strong>Tarik handle ↕</strong> di dasar heel/toe untuk kedalaman Cutoff</span>
+                <span>• <strong>Scroll roda mouse / tombol + −</strong> untuk Zoom</span>
+              </div>
+              <span className="text-[10px] italic text-muted-foreground">Tahan Shift untuk drag bebas tanpa snap</span>
+            </div>
+          )}
           <AnnotatedSketch
             ref={sketchRef}
             annotate={showAnnotations}
             showLegend={true}
             svgWidth={640}
             svgHeight={340}
+            interactive={isInteractive}
+            allowDrag={isInteractive}
+            allowZoom={true}
+            highlightIdx={selectedCompIdx ?? undefined}
+            onClickComponent={(idx) => {
+              setSelectedCompIdx(idx);
+              const cardEl = document.getElementById(`comp-card-${idx}`);
+              cardEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            onUpdateComponent={(id, patch) => upd(id, patch)}
+            onUpdateCutoff={(type, depth) => {
+              update((x) => ({
+                ...x,
+                seepage: {
+                  enabled: true,
+                  soilType: x.seepage?.soilType ?? "PASIR_SEDANG",
+                  dCutoffUp: type === "up" ? depth : (x.seepage?.dCutoffUp ?? 1.5),
+                  dCutoffDown: type === "down" ? depth : (x.seepage?.dCutoffDown ?? 2.0),
+                  lApronUp: x.seepage?.lApronUp ?? 0,
+                  lApronDown: x.seepage?.lApronDown ?? 0,
+                },
+              }));
+            }}
           />
         </Section>
         <Section title="Ringkasan">
