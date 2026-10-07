@@ -1,10 +1,11 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useHydrated } from "@/lib/store";
 import { useProject } from "@/lib/useProject";
 import { Status, AutosaveBadge } from "@/components/kit";
 import { exportXlsx } from "@/lib/exportXlsx";
 import { PdfViewerDrawer } from "@/components/PdfViewerDrawer";
+import { StickyStabilityBar } from "@/components/StickyStabilityBar";
 import type { ExtractedPdfData } from "@/lib/pdfExtractor";
 
 export const Route = createFileRoute("/proyek/$id")({
@@ -67,6 +68,9 @@ function Inner() {
   const [saved, setSaved] = useState(true);
   const [isPdfDrawerOpen, setIsPdfDrawerOpen] = useState(false);
   const prevUpdatedRef = useRef(project?.updatedAt);
+  const isLaporan = useRouterState({
+    select: (s) => s.location.pathname.endsWith("/laporan"),
+  });
 
   const handleApplyExtracted = (data: ExtractedPdfData) => {
     update((p) => ({
@@ -217,7 +221,16 @@ function Inner() {
             <AutosaveBadge saved={saved} />
           </div>
         </div>
-        <main className="print-full mx-auto max-w-6xl px-6 py-8"><Outlet /></main>
+        <main className="print-full mx-auto max-w-6xl px-6 py-8 pb-24">
+          <Outlet />
+        </main>
+        {!isLaporan && (
+          <StickyStabilityBar
+            project={project}
+            result={result}
+            className="md:left-72"
+          />
+        )}
       </div>
 
       {/* Slide-out Split Screen PDF Viewer Drawer */}

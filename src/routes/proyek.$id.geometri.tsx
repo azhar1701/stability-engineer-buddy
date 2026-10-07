@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useProject } from "@/lib/useProject";
+import { useProjectHistory } from "@/lib/useProjectHistory";
 import { fmt, KV, PageHeader, Section, StepNav } from "@/components/kit";
 import { MATERIALS, typeById } from "@/lib/engine/master";
 import { uid } from "@/lib/engine/defaults";
@@ -34,15 +35,22 @@ function flipSlope(shape: Shape): Shape {
 
 function GeometriPage() {
   const { project: p, result: a, update } = useProject();
+  const { canUndo, canRedo, undo, redo, recordAction } = useProjectHistory();
   const [viewMode, setViewMode] = useState<"CARD" | "TABLE">("CARD");
   const [isParametricModalOpen, setIsParametricModalOpen] = useState(false);
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [isInteractive, setIsInteractive] = useState(true);
   const [selectedCompIdx, setSelectedCompIdx] = useState<number | null>(null);
   const sketchRef = useRef<SVGSVGElement>(null);
-  const upd = (id: string, patch: Partial<Component>) => update((x) => ({ ...x, components: x.components.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
-  const add = (name = "Komponen") => update((x) => ({ ...x, components: [...x.components, { id: uid(), name, shape: "PERSEGI", b1: 0, b2: 0, h: 0, x0: 0, z0: 0, material: "Beton bertulang" }] }));
-  const del = (id: string) => update((x) => ({ ...x, components: x.components.filter((c) => c.id !== id) }));
+
+  const safeUpdate = (fn: (x: typeof p) => typeof p) => {
+    recordAction();
+    update(fn);
+  };
+
+  const upd = (id: string, patch: Partial<Component>) => safeUpdate((x) => ({ ...x, components: x.components.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
+  const add = (name = "Komponen") => safeUpdate((x) => ({ ...x, components: [...x.components, { id: uid(), name, shape: "PERSEGI", b1: 0, b2: 0, h: 0, x0: 0, z0: 0, material: "Beton bertulang" }] }));
+  const del = (id: string) => safeUpdate((x) => ({ ...x, components: x.components.filter((c) => c.id !== id) }));
   const num = (c: Component, k: keyof Component) => (
     <input type="number" step="any" className={cell} value={c[k] as number} onChange={(e) => upd(c.id, { [k]: parseFloat(e.target.value) || 0 })} />
   );
@@ -80,7 +88,7 @@ function GeometriPage() {
     const newX0 = Math.max(0, +(p.B - (c.x0 + c.b1)).toFixed(4));
     const newShape = flipSlope(c.shape);
 
-    update((x) => ({
+    safeUpdate((x) => ({
       ...x,
       components: [
         ...x.components,
@@ -107,6 +115,28 @@ function GeometriPage() {
         title="Komponen Struktur Bangunan"
         aside={
           <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 mr-1">
+              <button
+                type="button"
+                onClick={undo}
+                disabled={!canUndo}
+                title="Undo perubahan (Ctrl+Z)"
+                className="rounded border border-input bg-card px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1 shadow-2xs"
+              >
+                <span>↶</span>
+                <span className="hidden sm:inline text-[11px] font-medium">Undo</span>
+              </button>
+              <button
+                type="button"
+                onClick={redo}
+                disabled={!canRedo}
+                title="Redo perubahan (Ctrl+Y)"
+                className="rounded border border-input bg-card px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1 shadow-2xs"
+              >
+                <span>↷</span>
+                <span className="hidden sm:inline text-[11px] font-medium">Redo</span>
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => setIsParametricModalOpen(true)}
@@ -424,6 +454,10 @@ function GeometriPage() {
             interactive={isInteractive}
             allowDrag={isInteractive}
             allowZoom={true}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
             highlightIdx={selectedCompIdx ?? undefined}
             onClickComponent={(idx) => {
               setSelectedCompIdx(idx);
@@ -432,7 +466,7 @@ function GeometriPage() {
             }}
             onUpdateComponent={(id, patch) => upd(id, patch)}
             onUpdateCutoff={(type, depth) => {
-              update((x) => ({
+              safeUpdate((x) => ({
                 ...x,
                 seepage: {
                   enabled: true,
@@ -473,7 +507,7 @@ function GeometriPage() {
             : undefined
         }
         onApply={(newComps, newB) => {
-          update((x) => ({
+          safeUpdate((x) => ({
             ...x,
             components: newComps,
             ...(newB !== undefined && newB > 0 ? { B: newB } : {}),

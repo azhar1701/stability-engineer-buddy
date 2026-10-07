@@ -16,6 +16,10 @@ export interface AnnotatedSketchProps {
   interactive?: boolean;
   allowDrag?: boolean;
   allowZoom?: boolean;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
   onUpdateComponent?: (id: string, patch: Partial<Component>) => void;
   onUpdateCutoff?: (type: "up" | "down", depth: number) => void;
 }
@@ -41,6 +45,10 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
     interactive = false,
     allowDrag = false,
     allowZoom = true,
+    canUndo = false,
+    canRedo = false,
+    onUndo,
+    onRedo,
     onUpdateComponent,
     onUpdateCutoff,
   },
@@ -571,6 +579,29 @@ export const AnnotatedSketch = forwardRef<SVGSVGElement, AnnotatedSketchProps>(f
           >
             ⟲
           </button>
+          {onUndo && (
+            <>
+              <div className="h-3.5 w-px bg-border/60 mx-0.5" />
+              <button
+                type="button"
+                onClick={onUndo}
+                disabled={!canUndo}
+                title="Undo Riwayat Modifikasi (Ctrl+Z)"
+                className="flex h-6 w-6 items-center justify-center rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              >
+                ↶
+              </button>
+              <button
+                type="button"
+                onClick={onRedo}
+                disabled={!canRedo}
+                title="Redo Riwayat Modifikasi (Ctrl+Y)"
+                className="flex h-6 w-6 items-center justify-center rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              >
+                ↷
+              </button>
+            </>
+          )}
         </div>
       )}
 
